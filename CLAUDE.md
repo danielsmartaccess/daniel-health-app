@@ -1,4 +1,4 @@
-# CLAUDE.md — Projeto Claude C
+# CLAUDE.md — Daniel Health App
 
 > **Perfil profissional, modo de operação, papéis, playbooks e regra de ouro** estão
 > definidos no arquivo global `~/.claude/CLAUDE.md` (Daniel Steinbruch) e são herdados
@@ -8,65 +8,99 @@
 
 ## VISÃO GERAL
 
-* **Nome:** Projeto Claude C
-* **Objetivo:** _(descrever o problema que o projeto resolve)_
-* **Status:** _(ex.: discovery / MVP / produção)_
+* **Nome:** Daniel Health App
+* **Objetivo:** App pessoal de monitoramento de saúde — rastreia exercícios, alimentação, biometria e exames laboratoriais (HDL, VO₂ Max, triglicerídeos, glicose)
+* **Status:** v1.0 MVP (frontend com localStorage) → v2.0 em desenvolvimento (Supabase backend + auth)
 
 ---
 
 ## STACK DESTE PROJETO
 
-> Por padrão, seguir a stack preferencial do perfil global (Angular + TypeScript no
-> front, Python + FastAPI no back, PostgreSQL/SQLite, Firebase/Google Cloud).
-> Ajustar abaixo apenas o que for específico deste projeto.
+* Front-end: HTML5 + CSS3 + JavaScript vanilla + Chart.js v4 (CDN)
+* Back-end: Supabase (PostgreSQL gerenciado + Auth + RLS)
+* Banco de dados: PostgreSQL via Supabase — projeto `daniel-health-app` (region: `sa-east-1`)
+* Infra / Cloud: Supabase (Brasil — sa-east-1)
 
-* Front-end: _(a definir)_
-* Back-end: _(a definir)_
-* Banco de dados: _(a definir)_
-* Infra / Cloud: _(a definir)_
+---
+
+## CREDENCIAIS SUPABASE
+
+* **Project ID:** `qktebgvnejjhpfdriert`
+* **URL:** `https://qktebgvnejjhpfdriert.supabase.co`
+* **Dashboard:** [supabase.com/dashboard/project/qktebgvnejjhpfdriert](https://supabase.com/dashboard/project/qktebgvnejjhpfdriert)
+* **Chave pública (anon):** ver `.env.example`
+
+---
+
+## REPOSITÓRIO GITHUB
+
+* **URL:** [github.com/danielsmartaccess/daniel-health-app](https://github.com/danielsmartaccess/daniel-health-app)
+* **Branch principal:** `master`
 
 ---
 
 ## COMANDOS
 
-> Comandos de build, testes, lint e execução local.
-
 ```bash
-# Instalar dependências
-# (a definir)
+# Abrir o app localmente (é um único arquivo HTML)
+start saude-app.html          # Windows
+open saude-app.html           # Mac
 
-# Rodar em desenvolvimento
-# (a definir)
-
-# Rodar testes
-# (a definir)
-
-# Lint / formatação
-# (a definir)
+# Subir alterações para o GitHub
+git add -A
+git commit -m "feat: descrição"
+git push origin master
 ```
 
 ---
 
 ## ARQUITETURA
 
-> Estrutura de pastas, módulos principais, fluxo de dados e decisões arquiteturais
-> relevantes deste projeto.
+```text
+Projeto Claude C/
+├── saude-app.html        → App completo (single-file, vanilla JS + Chart.js)
+├── supabase/
+│   └── schema.sql        → Schema PostgreSQL com RLS (já aplicado no Supabase)
+├── .env.example          → Template de variáveis de ambiente
+├── README.md
+└── CLAUDE.md
+```
 
-* _(a definir)_
+**Fluxo de dados (v1.0):**
+
+* Usuário registra dados → localStorage (`sh_logs`, `sh_metrics`)
+* Charts leem do localStorage e renderizam com Chart.js
+
+**Fluxo de dados (v2.0 planejado):**
+
+* Supabase Auth (magic link) → profiles (auto-criado via trigger)
+* CRUD via Supabase JS client → PostgreSQL com RLS por usuário
+
+**Tabelas do banco:**
+
+* `profiles` — perfil do usuário (criado automaticamente no signup)
+* `daily_logs` — log diário (1 por dia por usuário)
+* `exercises` — detalhes do treino
+* `meals` — refeições (café, almoço, jantar)
+* `biometrics` — peso, FC repouso, água, sono
+* `medications` — Olmecor
+* `alcohol_log` — tipo e doses
+* `lab_results` — HDL, triglicerídeos, glicose, VO₂ Max, peso
 
 ---
 
 ## CONVENÇÕES ESPECÍFICAS
 
-> Padrões de código, nomenclatura, branches, commits e qualquer regra que valha
-> só para este repositório (e que complemente Clean Code / SOLID / DRY do perfil global).
-
-* _(a definir)_
+* Single-file HTML por ora — não criar arquivos JS/CSS separados sem necessidade
+* Variáveis de ambiente nunca vão no `saude-app.html` em produção — usar Supabase env vars
+* Commits em português ou inglês, prefixo convencional: `feat:`, `fix:`, `chore:`
+* Branch principal: `master`
 
 ---
 
 ## NOTAS E CONTEXTO
 
-> Decisões, restrições, integrações e pontos de atenção específicos do projeto.
-
-* _(a definir)_
+* App de uso pessoal (Daniel Steinbruch) — sem multitenancy complexo, RLS garante isolamento
+* Olmecor é medicamento cardiovascular — campo `olmecor_taken` na tabela `medications`
+* Metas de saúde atuais: HDL 29→40 mg/dL, VO₂ Max 27.2→35+, TG <130, Glicose <100
+* Próximo passo v2.0: integrar Supabase JS client no `saude-app.html` para substituir localStorage
