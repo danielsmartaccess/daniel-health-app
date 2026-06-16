@@ -36,10 +36,21 @@ Personal health tracking app — built to monitor HDL, exercise, nutrition and k
 - [x] Novos gráficos no Progresso (recuperação cardíaca, energia ativa, distância)
 - [x] **Auto-sync do Apple Saúde** via Atalho do iOS → função `upsert_apple_day` (ver [`IOS_SHORTCUT.md`](IOS_SHORTCUT.md))
 
+## v2.3 — PWA instalável (entregue)
+
+- [x] Manifest + service worker + ícones (coração verde)
+- [x] Instalável no iPhone (tela cheia, sem barra do Safari)
+- [x] Áreas seguras (notch / indicador) e abertura offline do shell
+
+### 📲 Instalar no iPhone
+
+1. Abra a [URL do app](https://danielsmartaccess.github.io/daniel-health-app/saude-app.html) no **Safari**
+2. Toque em **Compartilhar** → **Adicionar à Tela de Início**
+3. Abra pelo ícone 🫀 — roda como app nativo
+
 ## Roadmap (v3.0)
 
 - [ ] Sync em tempo real entre dispositivos (Supabase Realtime)
-- [ ] PWA (Progressive Web App) — instalável no iPhone
 - [ ] Notificações push (lembrete diário)
 - [ ] (Opcional) Blindar com anonymous sign-in mantendo zero fricção
 

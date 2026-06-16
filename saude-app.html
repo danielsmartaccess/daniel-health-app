@@ -2,15 +2,22 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Daniel · Saúde</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f1117">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Saúde">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#0f1117;--surface:#181c27;--card:#1e2333;--border:#2a2f42;--green:#4ade80;--gdim:#1a3a27;--yellow:#fbbf24;--ydim:#2d2410;--red:#f87171;--rdim:#2d1a1a;--blue:#60a5fa;--bdim:#1a2540;--purple:#c084fc;--pdim:#251535;--text:#e2e8f0;--muted:#64748b;--acc:#4ade80;--nav:68px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Display',sans-serif;font-size:15px;line-height:1.5;min-height:100vh;padding-bottom:calc(var(--nav) + 8px)}
-.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:rgba(15,17,23,.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:100}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Display',sans-serif;font-size:15px;line-height:1.5;min-height:100vh;padding-top:env(safe-area-inset-top);padding-bottom:calc(var(--nav) + 8px + env(safe-area-inset-bottom))}
+.bnav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:rgba(15,17,23,.96);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:100}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--muted);font-size:10px;font-weight:500;cursor:pointer;padding-bottom:6px}
 .ni .ico{font-size:22px;line-height:1}.ni.active{color:var(--acc)}
 .sec{display:none;padding:16px 16px 32px;max-width:500px;margin:0 auto}.sec.active{display:block}
@@ -982,6 +989,11 @@ async function boot(){
   buildCharts();
 }
 boot();
+
+// ─── PWA: service worker ───────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW',e)));
+}
 </script>
 </body>
 </html>
