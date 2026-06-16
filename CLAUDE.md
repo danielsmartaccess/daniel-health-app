@@ -10,7 +10,7 @@
 
 * **Nome:** Daniel Health App
 * **Objetivo:** App pessoal de monitoramento de saúde — rastreia exercícios, alimentação, biometria e exames laboratoriais (HDL, VO₂ Max, triglicerídeos, glicose)
-* **Status:** v2.0 — cloud-only com Supabase (login obrigatório por magic link). localStorage removido.
+* **Status:** v2.1 — cloud-only com Supabase, **sem login** (dono único fixo). localStorage removido.
 * **App online:** [danielsmartaccess.github.io/daniel-health-app/saude-app.html](https://danielsmartaccess.github.io/daniel-health-app/saude-app.html)
 
 ---
@@ -101,27 +101,29 @@ Projeto Claude C/
 
 ## NOTAS E CONTEXTO
 
-* App de uso pessoal (Daniel Steinbruch) — sem multitenancy complexo, RLS garante isolamento
+* App de uso pessoal (Daniel Steinbruch) — 1 único usuário, sem multitenancy
 * Olmecor é medicamento cardiovascular — campo `olmecor_taken` na tabela `medications`
 * Metas de saúde atuais: HDL 29→40 mg/dL, VO₂ Max 27.2→35+, TG <130, Glicose <100
 
-### Arquitetura v2.0 (cloud-only)
+### Arquitetura v2.1 (cloud-only, sem login)
 
-* Login obrigatório via **magic link** (Supabase Auth) — sem senha
-* Dados carregados do Supabase para um **cache em memória** no login; getters do app permanecem síncronos
+* **Sem autenticação** — abre e usa direto. Usa um **dono único fixo**:
+  `OWNER_ID = 00000000-0000-0000-0000-000000000001` (linha em `profiles`)
+* Dados carregados do Supabase para um **cache em memória** no boot; getters do app permanecem síncronos
 * Saves são **otimistas**: atualizam o cache na hora e persistem no Supabase em segundo plano
 * Cada dia (`daily_logs`) faz upsert nas tabelas filhas via `onConflict` em `log_id`
+* RLS está **aberto** (`USING (true)`) para o papel `anon` — sem login não há `auth.uid()`
 
-### ⚠️ Passo manual obrigatório (uma vez) — config de Auth
+### ⚠️ Trade-off de segurança (decisão consciente)
 
-Para o magic link funcionar, configurar em
-[Auth → URL Configuration](https://supabase.com/dashboard/project/qktebgvnejjhpfdriert/auth/url-configuration):
-
-* **Site URL:** `https://danielsmartaccess.github.io/daniel-health-app/saude-app.html`
-* **Redirect URLs:** `https://danielsmartaccess.github.io/daniel-health-app/**`
+Sem login, a chave `anon` fica no HTML público e as políticas RLS são permissivas
+→ quem descobrir a URL do projeto pode ler/gravar os dados. Aceitável para app
+pessoal de 1 usuário. O Supabase Advisor mostra 8 avisos `rls_policy_always_true` —
+**esperados** nesta configuração.
 
 ### Próximos passos sugeridos
 
 * PWA (manifest + service worker) para instalar no iPhone
+* Blindar sem perder a simplicidade: **anonymous sign-in** do Supabase (cria sessão
+  automática sem o usuário fazer nada) → permite voltar ao RLS por `auth.uid()`
 * Realtime sync entre dispositivos (Supabase Realtime)
-* Migrar a chave para `sb_publishable_...` (key moderna) no lugar da anon legada

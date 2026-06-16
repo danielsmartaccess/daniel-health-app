@@ -3,7 +3,7 @@
 Personal health tracking app — built to monitor HDL, exercise, nutrition and key biomarkers.
 
 ## Status
-`v2.0` — **cloud-only** com Supabase (PostgreSQL + Auth). Login obrigatório por magic link.
+`v2.1` — **cloud-only** com Supabase (PostgreSQL). **Sem login** — abre e usa direto, dados salvos na nuvem.
 
 🔗 **App online:** <https://danielsmartaccess.github.io/daniel-health-app/saude-app.html>
 
@@ -23,10 +23,10 @@ Personal health tracking app — built to monitor HDL, exercise, nutrition and k
 - [x] Streak de dias consecutivos
 - [x] Persistência via localStorage
 
-## v2.0 — Supabase (entregue)
+## v2.1 — Supabase sem login (entregue)
 
-- [x] Autenticação com magic link (email)
-- [x] Banco de dados PostgreSQL no Supabase (8 tabelas + RLS)
+- [x] Banco de dados PostgreSQL no Supabase (8 tabelas)
+- [x] **Sem login** — abre e usa direto (dono único fixo)
 - [x] Persistência cloud-only (cache em memória + saves otimistas)
 - [x] Hospedagem via GitHub Pages
 
@@ -35,6 +35,7 @@ Personal health tracking app — built to monitor HDL, exercise, nutrition and k
 - [ ] Sync em tempo real entre dispositivos (Supabase Realtime)
 - [ ] PWA (Progressive Web App) — instalável no iPhone
 - [ ] Notificações push (lembrete diário)
+- [ ] (Opcional) Blindar com anonymous sign-in mantendo zero fricção
 
 ## Stack
 | Camada | Tecnologia |
@@ -78,10 +79,12 @@ lab_results (id, user_id, date, hdl, triglycerides, glucose, vo2_max, weight_kg,
 
 Acesse o app online: <https://danielsmartaccess.github.io/daniel-health-app/saude-app.html>
 
-Faça login com seu e-mail (magic link) e seus dados ficam salvos na nuvem.
+Sem login: é só abrir e usar. Seus registros ficam salvos na nuvem (Supabase) e
+disponíveis em qualquer dispositivo.
 
-> **Nota:** o login por magic link exige HTTPS — use a URL do GitHub Pages, não abra o arquivo via `file://`.
-> Antes do primeiro acesso, configure o **Site URL** e **Redirect URLs** no painel de Auth do Supabase (ver `CLAUDE.md`).
+> **Privacidade:** por ser sem login, os dados não têm proteção por usuário — quem
+> tiver a URL pode acessá-los. Adequado a um app pessoal. Ver `CLAUDE.md` para o
+> trade-off e a opção de blindagem futura.
 
 ## Autor
 Daniel Steinbruch — Just Go Smart Access
