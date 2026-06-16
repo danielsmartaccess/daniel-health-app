@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(gh --version)",
+      "PowerShell(gh --version)",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\GitHub CLI\\\\;\" + $env:PATH; gh --version)",
+      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\GitHub CLI\\\\\" -ErrorAction SilentlyContinue; Get-ChildItem \"${env:LOCALAPPDATA}\\\\Programs\\\\GitHub CLI\\\\\" -ErrorAction SilentlyContinue; Get-Command gh -ErrorAction SilentlyContinue)"
+    ]
+  }
+}
