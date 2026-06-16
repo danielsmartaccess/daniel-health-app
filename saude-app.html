@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Daniel · Saúde</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#0f1117;--surface:#181c27;--card:#1e2333;--border:#2a2f42;--green:#4ade80;--gdim:#1a3a27;--yellow:#fbbf24;--ydim:#2d2410;--red:#f87171;--rdim:#2d1a1a;--blue:#60a5fa;--bdim:#1a2540;--purple:#c084fc;--pdim:#251535;--text:#e2e8f0;--muted:#64748b;--acc:#4ade80;--nav:68px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -86,6 +87,20 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Di
 </style>
 </head>
 <body>
+
+<!-- ===== LOGIN (magic link) ===== -->
+<div id="auth-gate" style="position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="max-width:340px;width:100%;text-align:center">
+    <div style="font-size:46px;margin-bottom:8px">🫀</div>
+    <h1 style="font-size:24px;color:#fff;margin-bottom:6px;font-weight:800">Daniel · Saúde</h1>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:24px;line-height:1.6">Entre com seu e-mail para acessar seus dados na nuvem. Enviaremos um link de acesso (sem senha).</p>
+    <input type="email" class="fi" id="auth-email" placeholder="seu@email.com" autocomplete="email" style="margin-bottom:12px;text-align:center">
+    <button class="btn-primary" id="auth-btn" onclick="sendMagic()">✉️ Enviar link de acesso</button>
+    <div id="auth-msg" style="font-size:13px;color:var(--muted);margin-top:14px;line-height:1.5"></div>
+  </div>
+</div>
+
+<button id="logout-btn" onclick="logout()" style="display:none;position:fixed;top:10px;right:12px;z-index:120;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;font-family:inherit">Sair</button>
 
 <div class="toast" id="toast"></div>
 
@@ -396,16 +411,82 @@ const SUSHI=[
   {ico:'🍚',food:'Combinados com >15 peças de arroz',det:'Muito carbo de uma vez → pico de glicose',cls:'br',lbl:'❌ Cuidado'},
 ];
 
-// ─── STORAGE ─────────────────────────────────────────────────────────────────
-const K_LOGS='sh_logs', K_MET='sh_metrics';
-function load(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v!=null?v:d}catch{return d}}
-function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
-function getLogs(){return load(K_LOGS,{})}
-function getMets(){return load(K_MET,[])}
+// ─── SUPABASE (cloud-only) ─────────────────────────────────────────────────────
+const SB_URL='https://qktebgvnejjhpfdriert.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrdGViZ3ZuZWpqaHBmZHJpZXJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjgzOTEsImV4cCI6MjA5NzE0NDM5MX0.P5c5CtzBtWyv0-6f3QobndITAngnHan-Vrr6jlcVeqc';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let USER=null;
+const logIdByDate={};               // date -> daily_logs.id (preenchido no boot/save)
+
+// ─── CACHE (em memória; espelha o Supabase) ─────────────────────────────────────
+// Mantém os getters síncronos que o app já usa. O cache é carregado uma vez no
+// login (bootData) e atualizado de forma otimista a cada save.
+const CACHE={logs:{},mets:[]};
+function getLogs(){return CACHE.logs}
+function getMets(){return CACHE.mets}
 function todayKey(){return new Date().toISOString().slice(0,10)}
 function defLog(d){return{date:d,exercise:{done:false,type:null,dur:0,cal:0,hr:0,hrmin:0,notes:''},meals:{breakfast:false,lunch:false,dinner:false},water:0,med:false,alcohol:{type:null,amt:0},sleep:{h:0,q:''},weight:null,hr:null}}
-function getTodayLog(){const logs=getLogs(),k=todayKey();return logs[k]||defLog(k)}
-function saveTodayLog(l){const logs=getLogs();logs[l.date]=l;save(K_LOGS,logs)}
+function getTodayLog(){const k=todayKey();return CACHE.logs[k]||defLog(k)}
+
+// Salva otimista: atualiza o cache na hora e persiste no Supabase em segundo plano.
+function saveTodayLog(l){CACHE.logs[l.date]=l;persistDay(l);}
+
+// ─── PERSISTÊNCIA: dia → tabelas normalizadas ──────────────────────────────────
+async function persistDay(l){
+  if(!USER)return;
+  try{
+    const {data:dl,error}=await sb.from('daily_logs')
+      .upsert({user_id:USER.id,date:l.date,updated_at:new Date().toISOString()},{onConflict:'user_id,date'})
+      .select('id').single();
+    if(error)throw error;
+    const log_id=dl.id; logIdByDate[l.date]=log_id;
+    const ex=l.exercise||{}, sl=l.sleep||{}, al=l.alcohol||{};
+    const res=await Promise.all([
+      sb.from('exercises').upsert({log_id,type:ex.type||null,done:!!ex.done,duration_min:ex.dur||0,calories:ex.cal||0,hr_max:ex.hr||null,hr_min:ex.hrmin||null,notes:ex.notes||null},{onConflict:'log_id'}),
+      sb.from('meals').upsert({log_id,breakfast:!!l.meals.breakfast,lunch:!!l.meals.lunch,dinner:!!l.meals.dinner},{onConflict:'log_id'}),
+      sb.from('biometrics').upsert({log_id,weight_kg:l.weight||null,resting_hr:l.hr||null,water_glasses:l.water||0,sleep_hours:sl.h||null,sleep_quality:sl.q||null},{onConflict:'log_id'}),
+      sb.from('medications').upsert({log_id,olmecor_taken:!!l.med},{onConflict:'log_id'}),
+      sb.from('alcohol_log').upsert({log_id,type:al.type||null,amount_doses:al.amt||0},{onConflict:'log_id'})
+    ]);
+    const err=res.find(r=>r.error);
+    if(err)throw err.error;
+  }catch(e){console.error('persistDay',e);toast('⚠️ Erro ao sincronizar');}
+}
+
+// ─── PERSISTÊNCIA: exame → lab_results ─────────────────────────────────────────
+async function persistMetric(m){
+  if(!USER)return;
+  try{
+    const {error}=await sb.from('lab_results').upsert({
+      user_id:USER.id,date:m.date,hdl:m.hdl||null,triglycerides:m.tg||null,
+      glucose:m.gl||null,vo2_max:m.vo2||null,weight_kg:m.wt||null,notes:m.obs||null
+    },{onConflict:'user_id,date'});
+    if(error)throw error;
+  }catch(e){console.error('persistMetric',e);toast('⚠️ Erro ao salvar exame');}
+}
+
+// ─── CARGA INICIAL: Supabase → cache ───────────────────────────────────────────
+async function bootData(){
+  const uid=USER.id;
+  const [dls,exs,mls,bio,med,alc,labs]=await Promise.all([
+    sb.from('daily_logs').select('*').eq('user_id',uid),
+    sb.from('exercises').select('*'),
+    sb.from('meals').select('*'),
+    sb.from('biometrics').select('*'),
+    sb.from('medications').select('*'),
+    sb.from('alcohol_log').select('*'),
+    sb.from('lab_results').select('*').eq('user_id',uid).order('date')
+  ]);
+  CACHE.logs={};
+  const byId={};
+  (dls.data||[]).forEach(d=>{logIdByDate[d.date]=d.id;const l=defLog(d.date);byId[d.id]=l;CACHE.logs[d.date]=l;});
+  (exs.data||[]).forEach(e=>{const l=byId[e.log_id];if(l)l.exercise={done:!!e.done,type:e.type,dur:e.duration_min||0,cal:e.calories||0,hr:e.hr_max||0,hrmin:e.hr_min||0,notes:e.notes||''};});
+  (mls.data||[]).forEach(m=>{const l=byId[m.log_id];if(l)l.meals={breakfast:!!m.breakfast,lunch:!!m.lunch,dinner:!!m.dinner};});
+  (bio.data||[]).forEach(b=>{const l=byId[b.log_id];if(l){l.water=b.water_glasses||0;l.sleep={h:b.sleep_hours||0,q:b.sleep_quality||''};l.weight=b.weight_kg;l.hr=b.resting_hr;}});
+  (med.data||[]).forEach(m=>{const l=byId[m.log_id];if(l)l.med=!!m.olmecor_taken;});
+  (alc.data||[]).forEach(a=>{const l=byId[a.log_id];if(l)l.alcohol={type:a.type,amt:a.amount_doses||0};});
+  CACHE.mets=(labs.data||[]).map(r=>({date:r.date,hdl:r.hdl,tg:r.triglycerides,gl:r.glucose,vo2:r.vo2_max,wt:r.weight_kg,obs:r.notes||''}));
+}
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let state=getTodayLog();
@@ -450,6 +531,10 @@ function calcStreak(logs){
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init(){
+  // Re-sincroniza o state com o cache recém-carregado do Supabase
+  state=getTodayLog();
+  exType=state.exercise.type; alcType=state.alcohol.type;
+
   // Date label
   const now=new Date();
   document.getElementById('lbl-date').textContent=`${DAY_NAMES[now.getDay()]}, ${now.getDate()} de ${MONTH_PT[now.getMonth()]} de ${now.getFullYear()}`;
@@ -743,10 +828,12 @@ function saveMetrics(){
   const wt=document.getElementById('m-wt').value;
   const obs=document.getElementById('m-obs').value;
   if(!hdl&&!tg&&!gl&&!vo2&&!wt){toast('⚠️ Preencha ao menos um campo');return;}
+  const m={date,hdl:hdl||null,tg:tg||null,gl:gl||null,vo2:vo2||null,wt:wt||null,obs};
   const mets=getMets();
-  mets.push({date,hdl:hdl||null,tg:tg||null,gl:gl||null,vo2:vo2||null,wt:wt||null,obs});
+  const i=mets.findIndex(x=>x.date===date);   // 1 painel por data (upsert)
+  if(i>=0)mets[i]=m; else mets.push(m);
   mets.sort((a,b)=>a.date.localeCompare(b.date));
-  save(K_MET,mets);
+  persistMetric(m);
   // update stats
   if(hdl){document.getElementById('s-hdl').textContent=hdl;const pct=Math.min(100,Math.round(+hdl/60*100));document.getElementById('hdl-bar').style.width=pct+'%';document.getElementById('hdl-pos').textContent=hdl+' ← você';}
   if(vo2)document.getElementById('s-vo2').textContent=vo2;
@@ -837,8 +924,39 @@ function showPlan(id,btn){
   if(btn)btn.classList.add('active');
 }
 
-// ─── BOOT ────────────────────────────────────────────────────────────────────
-init();
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+async function sendMagic(){
+  const email=(document.getElementById('auth-email').value||'').trim();
+  const msg=document.getElementById('auth-msg');
+  if(!email||!email.includes('@')){msg.textContent='Digite um e-mail válido.';return;}
+  const btn=document.getElementById('auth-btn');
+  btn.disabled=true; msg.textContent='Enviando...';
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.href}});
+  btn.disabled=false;
+  if(error){msg.textContent='Erro: '+error.message;return;}
+  msg.innerHTML='✅ <strong>Link enviado!</strong> Abra seu e-mail e clique no link para entrar.';
+}
+
+async function logout(){await sb.auth.signOut();location.reload();}
+
+async function onLogin(session){
+  if(USER)return;                       // evita boot duplicado
+  USER=session.user;
+  document.getElementById('auth-gate').style.display='none';
+  document.getElementById('logout-btn').style.display='block';
+  try{
+    await bootData();
+  }catch(e){console.error('bootData',e);toast('⚠️ Erro ao carregar dados');}
+  init();
+  buildCharts();
+}
+
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session)onLogin(session);
+  sb.auth.onAuthStateChange((_evt,sess)=>{ if(sess)onLogin(sess); });
+}
+boot();
 </script>
 </body>
 </html>
