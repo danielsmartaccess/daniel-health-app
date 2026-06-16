@@ -3,8 +3,9 @@
 Personal health tracking app — built to monitor HDL, exercise, nutrition and key biomarkers.
 
 ## Status
-`v1.0` — Frontend HTML/JS com localStorage  
-`v2.0` — (em breve) Supabase backend + auth + sync em tempo real
+`v2.0` — **cloud-only** com Supabase (PostgreSQL + Auth). Login obrigatório por magic link.
+
+🔗 **App online:** <https://danielsmartaccess.github.io/daniel-health-app/saude-app.html>
 
 ## Objetivo de Saúde
 - HDL: 29 → 40 mg/dL (meta 6 meses)
@@ -22,13 +23,18 @@ Personal health tracking app — built to monitor HDL, exercise, nutrition and k
 - [x] Streak de dias consecutivos
 - [x] Persistência via localStorage
 
-## Roadmap (v2.0 — Supabase)
-- [ ] Autenticação com magic link (email)
-- [ ] Banco de dados PostgreSQL no Supabase
-- [ ] Sync em tempo real entre dispositivos
+## v2.0 — Supabase (entregue)
+
+- [x] Autenticação com magic link (email)
+- [x] Banco de dados PostgreSQL no Supabase (8 tabelas + RLS)
+- [x] Persistência cloud-only (cache em memória + saves otimistas)
+- [x] Hospedagem via GitHub Pages
+
+## Roadmap (v3.0)
+
+- [ ] Sync em tempo real entre dispositivos (Supabase Realtime)
 - [ ] PWA (Progressive Web App) — instalável no iPhone
 - [ ] Notificações push (lembrete diário)
-- [ ] Dashboard de histórico completo
 
 ## Stack
 | Camada | Tecnologia |
@@ -40,7 +46,7 @@ Personal health tracking app — built to monitor HDL, exercise, nutrition and k
 | Hosting | Supabase / Vercel |
 | Futuro | React + TypeScript |
 
-## Estrutura de Banco de Dados (planejada)
+## Estrutura de Banco de Dados
 
 ```sql
 -- Usuário
@@ -68,8 +74,14 @@ alcohol_log (id, log_id, type, amount_doses)
 lab_results (id, user_id, date, hdl, triglycerides, glucose, vo2_max, weight_kg, notes)
 ```
 
-## Como rodar (v1.0)
-Abra `saude-app.html` diretamente no navegador. Sem instalação necessária.
+## Como usar
+
+Acesse o app online: <https://danielsmartaccess.github.io/daniel-health-app/saude-app.html>
+
+Faça login com seu e-mail (magic link) e seus dados ficam salvos na nuvem.
+
+> **Nota:** o login por magic link exige HTTPS — use a URL do GitHub Pages, não abra o arquivo via `file://`.
+> Antes do primeiro acesso, configure o **Site URL** e **Redirect URLs** no painel de Auth do Supabase (ver `CLAUDE.md`).
 
 ## Autor
 Daniel Steinbruch — Just Go Smart Access

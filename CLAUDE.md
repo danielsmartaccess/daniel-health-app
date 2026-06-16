@@ -10,7 +10,8 @@
 
 * **Nome:** Daniel Health App
 * **Objetivo:** App pessoal de monitoramento de saúde — rastreia exercícios, alimentação, biometria e exames laboratoriais (HDL, VO₂ Max, triglicerídeos, glicose)
-* **Status:** v1.0 MVP (frontend com localStorage) → v2.0 em desenvolvimento (Supabase backend + auth)
+* **Status:** v2.0 — cloud-only com Supabase (login obrigatório por magic link). localStorage removido.
+* **App online:** [danielsmartaccess.github.io/daniel-health-app/saude-app.html](https://danielsmartaccess.github.io/daniel-health-app/saude-app.html)
 
 ---
 
@@ -103,4 +104,24 @@ Projeto Claude C/
 * App de uso pessoal (Daniel Steinbruch) — sem multitenancy complexo, RLS garante isolamento
 * Olmecor é medicamento cardiovascular — campo `olmecor_taken` na tabela `medications`
 * Metas de saúde atuais: HDL 29→40 mg/dL, VO₂ Max 27.2→35+, TG <130, Glicose <100
-* Próximo passo v2.0: integrar Supabase JS client no `saude-app.html` para substituir localStorage
+
+### Arquitetura v2.0 (cloud-only)
+
+* Login obrigatório via **magic link** (Supabase Auth) — sem senha
+* Dados carregados do Supabase para um **cache em memória** no login; getters do app permanecem síncronos
+* Saves são **otimistas**: atualizam o cache na hora e persistem no Supabase em segundo plano
+* Cada dia (`daily_logs`) faz upsert nas tabelas filhas via `onConflict` em `log_id`
+
+### ⚠️ Passo manual obrigatório (uma vez) — config de Auth
+
+Para o magic link funcionar, configurar em
+[Auth → URL Configuration](https://supabase.com/dashboard/project/qktebgvnejjhpfdriert/auth/url-configuration):
+
+* **Site URL:** `https://danielsmartaccess.github.io/daniel-health-app/saude-app.html`
+* **Redirect URLs:** `https://danielsmartaccess.github.io/daniel-health-app/**`
+
+### Próximos passos sugeridos
+
+* PWA (manifest + service worker) para instalar no iPhone
+* Realtime sync entre dispositivos (Supabase Realtime)
+* Migrar a chave para `sb_publishable_...` (key moderna) no lugar da anon legada
