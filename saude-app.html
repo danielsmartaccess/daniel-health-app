@@ -144,6 +144,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Di
         <div class="fg" style="margin:0"><label class="fl">FC máxima (BPM)</label><input type="number" class="fi" id="ex-hr" placeholder="154" min="0"></div>
         <div class="fg" style="margin:0"><label class="fl">FC mínima (BPM)</label><input type="number" class="fi" id="ex-hrmin" placeholder="87" min="0"></div>
       </div>
+      <div class="fg"><label class="fl">Distância (m)</label><input type="number" class="fi" id="ex-dist" placeholder="1616" min="0"></div>
       <div class="fg"><label class="fl">Observações</label><input type="text" class="fi" id="ex-notes" placeholder="Como foi o treino?"></div>
     </div>
   </div>
@@ -189,11 +190,12 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Di
 
   <div class="card">
     <div class="cl">😴 Sono</div>
-    <div class="gr">
+    <div class="gr g3">
       <div><label class="fl">Horas</label><input type="number" class="fi" id="sl-h" placeholder="7.5" min="0" max="12" step="0.5"></div>
+      <div><label class="fl">Score (0-100)</label><input type="number" class="fi" id="sl-score" placeholder="68" min="0" max="100"></div>
       <div><label class="fl">Qualidade</label>
         <select class="fi" id="sl-q">
-          <option value="">Selecione</option>
+          <option value="">—</option>
           <option value="great">Ótima 😄</option>
           <option value="good">Boa 🙂</option>
           <option value="ok">Regular 😐</option>
@@ -208,6 +210,21 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Di
     <div class="gr">
       <div><label class="fl">Peso (kg)</label><input type="number" class="fi" id="b-wt" placeholder="80.6" step="0.1"></div>
       <div><label class="fl">FC repouso (BPM)</label><input type="number" class="fi" id="b-hr" placeholder="51"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cl">🍎 Apple Watch (anéis & cardio)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Preenchido automaticamente pelo Atalho do iOS — ou registre manualmente.</div>
+    <div class="gr g3">
+      <div><label class="fl">Energia ativa (cal)</label><input type="number" class="fi" id="ap-energy" placeholder="514" min="0"></div>
+      <div><label class="fl">Exercício (min)</label><input type="number" class="fi" id="ap-exmin" placeholder="46" min="0"></div>
+      <div><label class="fl">Em pé (h)</label><input type="number" class="fi" id="ap-stand" placeholder="7" min="0" max="24"></div>
+    </div>
+    <div class="gr g3">
+      <div><label class="fl">Recup. cardíaca (BPM)</label><input type="number" class="fi" id="ap-recovery" placeholder="32" min="0"></div>
+      <div><label class="fl">Freq. resp. (rpm)</label><input type="number" class="fi" id="ap-resp" placeholder="15.5" min="0" step="0.1"></div>
+      <div><label class="fl">Temp. (°C)</label><input type="number" class="fi" id="ap-temp" placeholder="36.8" min="30" max="43" step="0.1"></div>
     </div>
   </div>
 
@@ -257,6 +274,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Di
   <div class="card"><div class="cl">Peso (kg)</div><div class="cc"><canvas id="ch-wt"></canvas></div></div>
   <div class="card"><div class="cl">Treinos por semana (últimas 8 semanas)</div><div class="cc"><canvas id="ch-ex"></canvas></div></div>
   <div class="card"><div class="cl">Triglicerídeos & Glicose (mg/dL)</div><div class="cc"><canvas id="ch-tg"></canvas></div></div>
+  <div class="sec-sub" style="margin-top:6px">🍎 Métricas Apple Watch</div>
+  <div class="card"><div class="cl">Recuperação cardíaca (BPM em 1 min — quanto maior, melhor)</div><div class="cc"><canvas id="ch-recovery"></canvas></div></div>
+  <div class="card"><div class="cl">Energia ativa por dia (cal)</div><div class="cc"><canvas id="ch-energy"></canvas></div></div>
+  <div class="card"><div class="cl">Distância de natação (m)</div><div class="cc"><canvas id="ch-dist"></canvas></div></div>
 </section>
 
 <!-- ===== PLANO ===== -->
@@ -413,7 +434,7 @@ const CACHE={logs:{},mets:[]};
 function getLogs(){return CACHE.logs}
 function getMets(){return CACHE.mets}
 function todayKey(){return new Date().toISOString().slice(0,10)}
-function defLog(d){return{date:d,exercise:{done:false,type:null,dur:0,cal:0,hr:0,hrmin:0,notes:''},meals:{breakfast:false,lunch:false,dinner:false},water:0,med:false,alcohol:{type:null,amt:0},sleep:{h:0,q:''},weight:null,hr:null}}
+function defLog(d){return{date:d,exercise:{done:false,type:null,dur:0,cal:0,hr:0,hrmin:0,dist:0,notes:''},meals:{breakfast:false,lunch:false,dinner:false},water:0,med:false,alcohol:{type:null,amt:0},sleep:{h:0,q:'',score:null},weight:null,hr:null,apple:{energy:null,exMin:null,stand:null,recovery:null,resp:null,temp:null}}}
 function getTodayLog(){const k=todayKey();return CACHE.logs[k]||defLog(k)}
 
 // Salva otimista: atualiza o cache na hora e persiste no Supabase em segundo plano.
@@ -428,11 +449,11 @@ async function persistDay(l){
       .select('id').single();
     if(error)throw error;
     const log_id=dl.id; logIdByDate[l.date]=log_id;
-    const ex=l.exercise||{}, sl=l.sleep||{}, al=l.alcohol||{};
+    const ex=l.exercise||{}, sl=l.sleep||{}, al=l.alcohol||{}, ap=l.apple||{};
     const res=await Promise.all([
-      sb.from('exercises').upsert({log_id,type:ex.type||null,done:!!ex.done,duration_min:ex.dur||0,calories:ex.cal||0,hr_max:ex.hr||null,hr_min:ex.hrmin||null,notes:ex.notes||null},{onConflict:'log_id'}),
+      sb.from('exercises').upsert({log_id,type:ex.type||null,done:!!ex.done,duration_min:ex.dur||0,calories:ex.cal||0,hr_max:ex.hr||null,hr_min:ex.hrmin||null,distance_m:ex.dist||null,notes:ex.notes||null},{onConflict:'log_id'}),
       sb.from('meals').upsert({log_id,breakfast:!!l.meals.breakfast,lunch:!!l.meals.lunch,dinner:!!l.meals.dinner},{onConflict:'log_id'}),
-      sb.from('biometrics').upsert({log_id,weight_kg:l.weight||null,resting_hr:l.hr||null,water_glasses:l.water||0,sleep_hours:sl.h||null,sleep_quality:sl.q||null},{onConflict:'log_id'}),
+      sb.from('biometrics').upsert({log_id,weight_kg:l.weight||null,resting_hr:l.hr||null,water_glasses:l.water||0,sleep_hours:sl.h||null,sleep_quality:sl.q||null,sleep_score:sl.score||null,active_energy_cal:ap.energy||null,exercise_min:ap.exMin||null,stand_hours:ap.stand||null,cardio_recovery:ap.recovery||null,respiratory_rate:ap.resp||null,body_temp_c:ap.temp||null},{onConflict:'log_id'}),
       sb.from('medications').upsert({log_id,olmecor_taken:!!l.med},{onConflict:'log_id'}),
       sb.from('alcohol_log').upsert({log_id,type:al.type||null,amount_doses:al.amt||0},{onConflict:'log_id'})
     ]);
@@ -468,9 +489,9 @@ async function bootData(){
   CACHE.logs={};
   const byId={};
   (dls.data||[]).forEach(d=>{logIdByDate[d.date]=d.id;const l=defLog(d.date);byId[d.id]=l;CACHE.logs[d.date]=l;});
-  (exs.data||[]).forEach(e=>{const l=byId[e.log_id];if(l)l.exercise={done:!!e.done,type:e.type,dur:e.duration_min||0,cal:e.calories||0,hr:e.hr_max||0,hrmin:e.hr_min||0,notes:e.notes||''};});
+  (exs.data||[]).forEach(e=>{const l=byId[e.log_id];if(l)l.exercise={done:!!e.done,type:e.type,dur:e.duration_min||0,cal:e.calories||0,hr:e.hr_max||0,hrmin:e.hr_min||0,dist:e.distance_m||0,notes:e.notes||''};});
   (mls.data||[]).forEach(m=>{const l=byId[m.log_id];if(l)l.meals={breakfast:!!m.breakfast,lunch:!!m.lunch,dinner:!!m.dinner};});
-  (bio.data||[]).forEach(b=>{const l=byId[b.log_id];if(l){l.water=b.water_glasses||0;l.sleep={h:b.sleep_hours||0,q:b.sleep_quality||''};l.weight=b.weight_kg;l.hr=b.resting_hr;}});
+  (bio.data||[]).forEach(b=>{const l=byId[b.log_id];if(l){l.water=b.water_glasses||0;l.sleep={h:b.sleep_hours||0,q:b.sleep_quality||'',score:b.sleep_score};l.weight=b.weight_kg;l.hr=b.resting_hr;l.apple={energy:b.active_energy_cal,exMin:b.exercise_min,stand:b.stand_hours,recovery:b.cardio_recovery,resp:b.respiratory_rate,temp:b.body_temp_c};}});
   (med.data||[]).forEach(m=>{const l=byId[m.log_id];if(l)l.med=!!m.olmecor_taken;});
   (alc.data||[]).forEach(a=>{const l=byId[a.log_id];if(l)l.alcohol={type:a.type,amt:a.amount_doses||0};});
   CACHE.mets=(labs.data||[]).map(r=>({date:r.date,hdl:r.hdl,tg:r.triglycerides,gl:r.glucose,vo2:r.vo2_max,wt:r.weight_kg,obs:r.notes||''}));
@@ -696,6 +717,7 @@ function loadRegistrar(){
     if(l.exercise.cal)document.getElementById('ex-cal').value=l.exercise.cal;
     if(l.exercise.hr)document.getElementById('ex-hr').value=l.exercise.hr;
     if(l.exercise.hrmin)document.getElementById('ex-hrmin').value=l.exercise.hrmin;
+    if(l.exercise.dist)document.getElementById('ex-dist').value=l.exercise.dist;
     if(l.exercise.notes)document.getElementById('ex-notes').value=l.exercise.notes;
   }
   // meals
@@ -716,10 +738,19 @@ function loadRegistrar(){
   }
   // sleep
   if(l.sleep.h)document.getElementById('sl-h').value=l.sleep.h;
+  if(l.sleep.score)document.getElementById('sl-score').value=l.sleep.score;
   if(l.sleep.q)document.getElementById('sl-q').value=l.sleep.q;
   // biometria
   if(l.weight)document.getElementById('b-wt').value=l.weight;
   if(l.hr)document.getElementById('b-hr').value=l.hr;
+  // apple watch
+  const ap=l.apple||{};
+  if(ap.energy)document.getElementById('ap-energy').value=ap.energy;
+  if(ap.exMin)document.getElementById('ap-exmin').value=ap.exMin;
+  if(ap.stand)document.getElementById('ap-stand').value=ap.stand;
+  if(ap.recovery)document.getElementById('ap-recovery').value=ap.recovery;
+  if(ap.resp)document.getElementById('ap-resp').value=ap.resp;
+  if(ap.temp)document.getElementById('ap-temp').value=ap.temp;
 }
 
 function syncRegistrar(l){
@@ -789,13 +820,23 @@ function saveDay(){
   state.exercise.cal=+document.getElementById('ex-cal').value||0;
   state.exercise.hr=+document.getElementById('ex-hr').value||0;
   state.exercise.hrmin=+document.getElementById('ex-hrmin').value||0;
+  state.exercise.dist=+document.getElementById('ex-dist').value||0;
   state.exercise.notes=document.getElementById('ex-notes').value;
   state.alcohol.type=alcType;
   state.alcohol.amt=+document.getElementById('alc-amt').value||0;
   state.sleep.h=+document.getElementById('sl-h').value||0;
+  state.sleep.score=+document.getElementById('sl-score').value||null;
   state.sleep.q=document.getElementById('sl-q').value;
   state.weight=+document.getElementById('b-wt').value||null;
   state.hr=+document.getElementById('b-hr').value||null;
+  state.apple={
+    energy:+document.getElementById('ap-energy').value||null,
+    exMin:+document.getElementById('ap-exmin').value||null,
+    stand:+document.getElementById('ap-stand').value||null,
+    recovery:+document.getElementById('ap-recovery').value||null,
+    resp:+document.getElementById('ap-resp').value||null,
+    temp:+document.getElementById('ap-temp').value||null
+  };
   saveTodayLog(state);
   buildWeekGrid(getLogs());
   buildChkHoje(getLogs());
@@ -892,6 +933,26 @@ function buildCharts(){
   }
   buildChart('ch-ex','bar',exWeeks,[
     {label:'Treinos',data:exCounts,backgroundColor:exCounts.map(c=>c>=3?'#4ade80':c>=1?'#fbbf24':'#f87171'),borderRadius:6}
+  ]);
+
+  // ─── Séries diárias (Apple Watch) — usa os daily_logs ordenados por data ───
+  const days=Object.values(logs).sort((a,b)=>a.date.localeCompare(b.date));
+  const dLabels=days.map(l=>fmtDate(l.date));
+  const apVal=(l,f)=>{const v=l.apple&&l.apple[f];return v!=null&&v!==''?+v:null;};
+
+  // Recuperação cardíaca
+  buildChart('ch-recovery','line',dLabels,[
+    {label:'Recuperação',data:days.map(l=>apVal(l,'recovery')),borderColor:'#f472b6',backgroundColor:'rgba(244,114,182,.1)',pointBackgroundColor:'#f472b6',tension:.3,fill:true,spanGaps:true}
+  ]);
+
+  // Energia ativa por dia
+  buildChart('ch-energy','bar',dLabels,[
+    {label:'Energia ativa',data:days.map(l=>apVal(l,'energy')),backgroundColor:'#fb923c',borderRadius:5}
+  ]);
+
+  // Distância de natação (só dias de natação)
+  buildChart('ch-dist','bar',dLabels,[
+    {label:'Distância (m)',data:days.map(l=>(l.exercise&&l.exercise.type==='swim'&&l.exercise.dist)?l.exercise.dist:null),backgroundColor:'#22d3ee',borderRadius:5}
   ]);
 }
 

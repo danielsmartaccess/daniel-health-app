@@ -30,6 +30,12 @@ Personal health tracking app — built to monitor HDL, exercise, nutrition and k
 - [x] Persistência cloud-only (cache em memória + saves otimistas)
 - [x] Hospedagem via GitHub Pages
 
+## v2.2 — Métricas Apple Watch + auto-sync (entregue)
+
+- [x] Novos campos: recuperação cardíaca, anéis (energia/exercício/em pé), distância de treino, sono (horas + score), freq. respiratória, temperatura
+- [x] Novos gráficos no Progresso (recuperação cardíaca, energia ativa, distância)
+- [x] **Auto-sync do Apple Saúde** via Atalho do iOS → função `upsert_apple_day` (ver [`IOS_SHORTCUT.md`](IOS_SHORTCUT.md))
+
 ## Roadmap (v3.0)
 
 - [ ] Sync em tempo real entre dispositivos (Supabase Realtime)
