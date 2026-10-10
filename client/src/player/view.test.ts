@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildPlan, createWorkout, transition, type TemplateItemInput } from '@knee/shared';
 import { formatCountdown, formatElapsed } from './format';
-import { toPlayerView } from './view';
+import { startAnnouncement, toPlayerView } from './view';
 
 const S = 1000;
 const items: TemplateItemInput[] = [
@@ -39,6 +39,17 @@ describe('formatação de tempo', () => {
     expect(formatCountdown(0)).toBe('0:00');
     expect(formatElapsed(61_999)).toBe('1:01');
     expect(formatElapsed(-5)).toBe('0:00');
+  });
+});
+
+describe('startAnnouncement', () => {
+  it('anuncia o primeiro exercício com a meta falada por extenso', () => {
+    expect(startAnnouncement(idle)).toBe('Começando. Prancha, 40 segundos');
+  });
+
+  it('usa repetições quando o primeiro exercício é por repetição', () => {
+    const repsFirst = createWorkout(buildPlan([{ ...items[1]!, orderIndex: 0 }, items[0]!]));
+    expect(startAnnouncement(repsFirst)).toBe('Começando. Superman, 12 repetições');
   });
 });
 

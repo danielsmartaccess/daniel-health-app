@@ -259,6 +259,12 @@ body {
   color: var(--muted);
 }
 
+.voice-note {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
 /* ─── Chave do aparelho ─── */
 .key-form {
   max-width: 420px;

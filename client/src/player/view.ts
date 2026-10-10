@@ -67,6 +67,20 @@ export function toPlayerView(state: WorkoutState, now: number): PlayerView {
   };
 }
 
+/**
+ * Fala do botão "Iniciar treino". No iPhone, a primeira fala precisa acontecer no toque:
+ * anunciar o primeiro exercício destrava a voz para os avisos dos últimos 5 s.
+ */
+export function startAnnouncement(state: WorkoutState): string {
+  const first = state.plan.find((b): b is WorkBlock => b.kind === 'work');
+  return first ? `Começando. ${first.spokenName}, ${spokenTarget(first)}` : 'Começando';
+}
+
+function spokenTarget(block: WorkBlock): string {
+  if (block.mode === 'reps') return block.reps ? `${block.reps} repetições` : 'repetições';
+  return `${Math.round((block.durationMs ?? 0) / 1000)} segundos`;
+}
+
 export function targetLabel(block: WorkBlock): string {
   if (block.mode === 'reps') return block.reps ? `${block.reps} repetições` : 'repetições';
   return `${Math.round((block.durationMs ?? 0) / 1000)} s`;

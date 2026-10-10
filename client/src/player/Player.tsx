@@ -1,21 +1,35 @@
 import { useCallback, useMemo } from 'react';
 import { buildPlan, type Effect, type TemplateDto } from '@knee/shared';
+import { createBrowserVoiceCoach } from '../voice/voiceCoach';
 import { formatCountdown, formatElapsed } from './format';
 import { Timeline } from './Timeline';
 import { useWorkout } from './useWorkout';
-import { toPlayerView } from './view';
+import { startAnnouncement, toPlayerView } from './view';
 
 /**
- * Card 3.1 — player com barra de progresso.
- * Ainda não grava nada nem fala: voz (3.2), pausa/pular/Wake Lock (3.3) e
- * dor + gravação da sessão (3.4) entram nos próximos cards.
+ * Player do treino: barra de progresso (3.1) e voz nos últimos 5 s (3.2).
+ * Ainda não grava: pausa/pular/Wake Lock (3.3) e dor + gravação da sessão (3.4) vêm depois.
  */
 export function Player({ template }: { template: TemplateDto }) {
   const plan = useMemo(() => buildPlan(template.items), [template]);
-  // Efeitos de voz e de gravação são tratados nos cards 3.2 e 3.4.
-  const onEffect = useCallback((_effect: Effect) => {}, []);
+  const voice = useMemo(() => createBrowserVoiceCoach(), []);
+
+  // Efeito `speak` vem da máquina (uma vez por bloco, nos últimos 5 s). Gravação: card 3.4.
+  const onEffect = useCallback(
+    (effect: Effect) => {
+      if (effect.type === 'speak') voice.speak(effect.text);
+      if (effect.type === 'finished') voice.speak('Treino concluído');
+    },
+    [voice],
+  );
   const { state, now, send } = useWorkout(plan, onEffect);
   const view = toPlayerView(state, now);
+
+  // A fala precisa sair dentro do toque (exigência do iPhone para liberar a voz).
+  const start = () => {
+    voice.speak(startAnnouncement(state));
+    send('start');
+  };
 
   return (
     <main className={`player player--${view.kind ?? view.status}`}>
@@ -63,9 +77,14 @@ export function Player({ template }: { template: TemplateDto }) {
 
       <footer className="controls">
         {view.canStart && (
-          <button className="button button--primary" onClick={() => send('start')}>
+          <button className="button button--primary" onClick={start}>
             Iniciar treino
           </button>
+        )}
+        {view.canStart && !voice.available && (
+          <p className="muted voice-note">
+            Este navegador não tem voz: os avisos serão só na tela.
+          </p>
         )}
         {view.canComplete && (
           <button className="button button--primary" onClick={() => send('complete')}>
