@@ -4,9 +4,15 @@ node_modules/
 
 # Environment variables (NUNCA commitar)
 .env
-.env.local
-.env.production
+.env.*
 *.env
+!.env.example
+
+# Tokens locais do Spotify (OAuth) — nunca commitar
+server/.secrets/
+
+# Testes
+coverage/
 
 # Supabase local
 .supabase/
@@ -30,3 +36,6 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# Build da Vercel (Build Output API)
+.vercel/

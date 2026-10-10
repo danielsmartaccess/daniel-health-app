@@ -1,0 +1,12 @@
+# Legado do health app: formatação original preservada
+saude-app.html
+sw.js
+manifest.webmanifest
+supabase/schema.sql
+*.md
+
+# Gerados
+node_modules/
+dist/
+coverage/
+package-lock.json

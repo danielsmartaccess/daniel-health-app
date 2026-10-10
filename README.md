@@ -48,6 +48,18 @@ Personal health tracking app — built to monitor HDL, exercise, nutrition and k
 2. Toque em **Compartilhar** → **Adicionar à Tela de Início**
 3. Abra pelo ícone 🫀 — roda como app nativo
 
+## Treino do Joelho (em desenvolvimento)
+
+App local de treino guiado para recuperação de joelho, integrado ao mesmo banco.
+Fica em `client/`, `server/` e `shared/` (npm workspaces). O `saude-app.html` não muda.
+
+```bash
+npm install
+cp server/.env.example server/.env   # preencha SUPABASE_SERVICE_ROLE_KEY
+npm run dev                          # http://127.0.0.1:5173
+npm run check                        # lint + formatação + tipos + testes
+```
+
 ## Roadmap (v3.0)
 
 - [ ] Sync em tempo real entre dispositivos (Supabase Realtime)

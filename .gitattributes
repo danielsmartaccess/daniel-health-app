@@ -1,0 +1,3 @@
+# LF no repositório e no checkout (Prettier usa LF; evita diffs só de fim de linha no Windows)
+* text=auto eol=lf
+*.png binary
