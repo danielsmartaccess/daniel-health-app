@@ -1,4 +1,13 @@
-import type { ApiError, TemplateDto } from '@knee/shared';
+import type {
+  ApiError,
+  CreateSessionBody,
+  FinishSessionBody,
+  SessionFinishedDto,
+  SessionItem,
+  SessionItemCreatedDto,
+  SessionStartedDto,
+  TemplateDto,
+} from '@knee/shared';
 import { readDeviceKey } from './deviceKey';
 
 /** A API recusou a chave do aparelho (ausente, errada ou trocada no servidor). */
@@ -6,6 +15,17 @@ export class UnauthorizedError extends Error {
   constructor() {
     super('Chave do aparelho inválida');
     this.name = 'UnauthorizedError';
+  }
+}
+
+/** Resposta HTTP de erro da API (status preservado para decidir se vale tentar de novo). */
+export class ApiHttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiHttpError';
   }
 }
 
@@ -23,11 +43,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 401) throw new UnauthorizedError();
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as ApiError | null;
-    throw new Error(body?.error ?? `Falha na API (${res.status})`);
+    throw new ApiHttpError(res.status, body?.error ?? `Falha na API (${res.status})`);
   }
   return (await res.json()) as T;
 }
 
+const post = <T>(path: string, body: unknown, method = 'POST') =>
+  request<T>(path, { method, body: JSON.stringify(body) });
+
 export const api = {
   getTemplate: (id: string) => request<TemplateDto>(`/templates/${id}`),
+  createSession: (body: CreateSessionBody) => post<SessionStartedDto>('/sessions', body),
+  addSessionItem: (sessionId: string, item: SessionItem) =>
+    post<SessionItemCreatedDto>(`/sessions/${sessionId}/items`, item),
+  finishSession: (sessionId: string, body: FinishSessionBody) =>
+    post<SessionFinishedDto>(`/sessions/${sessionId}/finish`, body, 'PATCH'),
 };
+
+export type Api = typeof api;

@@ -295,6 +295,118 @@ body {
   cursor: pointer;
 }
 
+.badge--ok {
+  color: var(--work);
+  border-color: var(--work-dim);
+}
+.badge--error {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+/* ─── Check-in / check-out (dor, anti-inflamatório, notas) ─── */
+.checkin {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px 0;
+}
+
+.pain {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pain__label {
+  padding: 0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.pain__grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.pain__option {
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.pain__option.is-selected {
+  background: var(--rest);
+  border-color: var(--rest);
+  color: var(--on-accent);
+}
+.pain__option:focus-visible,
+.toggle input:focus-visible,
+.field input:focus-visible,
+.field textarea:focus-visible {
+  outline: 3px solid var(--rest);
+  outline-offset: 2px;
+}
+.pain__ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.toggle input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--rest);
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+.field input,
+.field textarea {
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .voice-note {
   margin: 0;
   text-align: center;
