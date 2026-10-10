@@ -140,6 +140,12 @@ Comandos: `npm install`, `npm run dev` (server 127.0.0.1:3001 + client 127.0.0.1
 API: `GET /api/templates/:id`, `POST /api/sessions`, `POST /api/sessions/:id/items`,
 `PATCH /api/sessions/:id/finish`, `POST /api/swims`, `GET /api/swims`.
 
+**Deploy (Vercel, projeto `treino-joelho`, região gru1):** `npm run vercel-build` gera `.vercel/output`
+(Build Output API v3: client estático + Express empacotado em função Node 22). Variáveis na Vercel:
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OWNER_ID`, `DEVICE_TOKEN`. O app legado continua no GitHub Pages.
+A API exige `Authorization: Bearer <DEVICE_TOKEN>` (exceto `/api/health`); o celular recebe a chave pelo
+link `https://<domínio>/#chave=<DEVICE_TOKEN>`, que a salva no aparelho e limpa a URL.
+
 **Segredos:** a chave service_role fica só em `server/.env`. `scripts/check-secrets.mjs` roda no `check`
 e no pre-commit local e bloqueia `sb_secret_...` e JWT service_role em arquivos rastreados.
 `server/src/database.types.ts` é um recorte dos tipos gerados: só contém as tabelas que o servidor pode tocar.
