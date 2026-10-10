@@ -5,6 +5,7 @@ import {
   idSchema,
   localDate,
   sessionItemSchema,
+  sessionMusicBodySchema,
   swimLogBodySchema,
   type RecoveryDto,
   type SessionFinishedDto,
@@ -73,6 +74,14 @@ export function createApiRouter({ repo, ownerId, now }: ApiDeps): Router {
     const body = finishSessionBodySchema.parse(req.body);
     const finished = await repo.finishSession(sessionId, body, new Date(now()).toISOString());
     res.json(finished satisfies SessionFinishedDto);
+  });
+
+  // 5.2 — música do Spotify que começou a tocar durante a sessão
+  router.post('/sessions/:id/music', async (req, res) => {
+    const sessionId = idSchema.parse(req.params.id);
+    const music = sessionMusicBodySchema.parse(req.body);
+    const created = await repo.addSessionMusic(sessionId, music, new Date(now()).toISOString());
+    res.status(201).json(created);
   });
 
   // 2.4 — natação: registro manual; o dia é a data local do início do treino

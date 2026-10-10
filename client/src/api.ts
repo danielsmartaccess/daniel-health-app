@@ -6,6 +6,7 @@ import type {
   SessionFinishedDto,
   SessionItem,
   SessionItemCreatedDto,
+  SessionMusicBody,
   SessionStartedDto,
   TemplateDto,
 } from '@knee/shared';
@@ -59,6 +60,8 @@ export const api = {
     post<SessionItemCreatedDto>(`/sessions/${sessionId}/items`, item),
   finishSession: (sessionId: string, body: FinishSessionBody) =>
     post<SessionFinishedDto>(`/sessions/${sessionId}/finish`, body, 'PATCH'),
+  addSessionMusic: (sessionId: string, music: SessionMusicBody) =>
+    post<{ id: string }>(`/sessions/${sessionId}/music`, music),
   getRecovery: () => request<RecoveryDto>('/recovery'),
 };
 

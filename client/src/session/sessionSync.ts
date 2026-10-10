@@ -1,4 +1,9 @@
-import type { CreateSessionBody, FinishSessionBody, SessionItem } from '@knee/shared';
+import type {
+  CreateSessionBody,
+  FinishSessionBody,
+  SessionItem,
+  SessionMusicBody,
+} from '@knee/shared';
 import { ApiHttpError, UnauthorizedError, type Api } from '../api';
 
 /**
@@ -23,9 +28,13 @@ export interface SyncState {
 type Op =
   | { kind: 'create'; body: CreateSessionBody }
   | { kind: 'item'; item: SessionItem }
+  | { kind: 'music'; music: SessionMusicBody }
   | { kind: 'finish'; body: FinishSessionBody };
 
-type SessionApi = Pick<Api, 'createSession' | 'addSessionItem' | 'finishSession'>;
+type SessionApi = Pick<
+  Api,
+  'createSession' | 'addSessionItem' | 'addSessionMusic' | 'finishSession'
+>;
 
 const DEFAULT_RETRY_DELAYS_MS = [1_000, 2_000, 5_000, 10_000, 30_000];
 
@@ -50,6 +59,11 @@ export class SessionSync {
 
   addItem(item: SessionItem): void {
     this.enqueue({ kind: 'item', item });
+  }
+
+  /** 5.2 — registra a música que começou a tocar (secundário: falha definitiva é ignorada). */
+  recordMusic(music: SessionMusicBody): void {
+    this.enqueue({ kind: 'music', music });
   }
 
   finish(body: FinishSessionBody): void {
@@ -115,6 +129,14 @@ export class SessionSync {
       }
       case 'item':
         await this.api.addSessionItem(this.requireSession(), op.item);
+        return;
+      case 'music':
+        try {
+          await this.api.addSessionMusic(this.requireSession(), op.music);
+        } catch (error) {
+          // Música é registro secundário: erro definitivo (4xx) é descartado sem parar a fila.
+          if (isRetryable(error)) throw error;
+        }
         return;
       case 'finish':
         try {

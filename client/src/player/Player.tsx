@@ -1,10 +1,12 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { buildPlan, type Effect, type TemplateDto } from '@knee/shared';
 import { api } from '../api';
 import { PainScale } from '../session/PainScale';
 import { readAntiInflammatory, saveAntiInflammatory } from '../session/preferences';
 import { SessionSync, type SyncState } from '../session/sessionSync';
 import { syncLabel } from '../session/syncLabel';
+import { SpotifyBar, SpotifyPanel } from '../spotify/SpotifyPanel';
+import { useSpotify } from '../spotify/useSpotify';
 import { createBrowserVoiceCoach } from '../voice/voiceCoach';
 import { formatCountdown, formatElapsed } from './format';
 import { Timeline } from './Timeline';
@@ -23,7 +25,8 @@ const WAKE_LOCK_LABEL: Record<WakeLockStatus, string | null> = {
 /**
  * Player do treino guiado:
  * 3.1 barra de progresso · 3.2 voz nos últimos 5 s · 3.3 pausar/pular/encerrar + tela acesa ·
- * 3.4 dor antes/depois, anti-inflamatório e gravação de cada série na hora.
+ * 3.4 dor antes/depois, anti-inflamatório e gravação de cada série na hora ·
+ * 5.2 música do Spotify acompanhando o treino.
  */
 export function Player({ template }: { template: TemplateDto }) {
   const plan = useMemo(() => buildPlan(template.items), [template]);
@@ -36,6 +39,7 @@ export function Player({ template }: { template: TemplateDto }) {
     error: null,
   });
   const [sync] = useState(() => new SessionSync(api, setSyncState));
+  const spotify = useSpotify();
 
   // Check-in (antes) e check-out (depois)
   const [painBefore, setPainBefore] = useState<number | null>(null);
@@ -59,6 +63,18 @@ export function Player({ template }: { template: TemplateDto }) {
   const wakeLabel = view.keepAwake ? WAKE_LOCK_LABEL[wakeLock] : null;
   const saveLabel = syncLabel(syncState, state.status !== 'idle');
 
+  // 5.2 — música: começa com o treino e acompanha pausar/retomar. Falha nunca trava o treino.
+  const musicPausedByWorkout = useRef(false);
+  const startMusic = async (fromPlaylist: boolean) => {
+    const nowPlaying = await spotify.play(fromPlaylist);
+    if (nowPlaying?.uri) sync.recordMusic({ spotifyUri: nowPlaying.uri, name: nowPlaying.name });
+  };
+  const toggleMusic = () => {
+    musicPausedByWorkout.current = false;
+    if (spotify.playing) void spotify.pause();
+    else void startMusic(false);
+  };
+
   const start = () => {
     if (painBefore === null) return;
     // A fala precisa sair dentro do toque (exigência do iPhone para liberar a voz).
@@ -66,10 +82,22 @@ export function Player({ template }: { template: TemplateDto }) {
     send('start');
     saveAntiInflammatory(antiInflammatory);
     sync.start({ templateId: template.id, painBefore, onAntiInflammatory: antiInflammatory });
+    if (spotify.connected) void startMusic(true);
   };
   const pause = () => {
     voice.silence();
     send('pause');
+    if (spotify.playing) {
+      musicPausedByWorkout.current = true;
+      void spotify.pause();
+    }
+  };
+  const resume = () => {
+    send('resume');
+    if (musicPausedByWorkout.current) {
+      musicPausedByWorkout.current = false;
+      void spotify.play(false);
+    }
   };
   const finishEarly = () => {
     if (window.confirm('Encerrar o treino agora? A série atual conta como pulada.')) send('finish');
@@ -123,6 +151,7 @@ export function Player({ template }: { template: TemplateDto }) {
             O anti-inflamatório mascara a dor. Marcar aqui evita que o gráfico sugira voltar ao pé
             de pato cedo demais.
           </p>
+          <SpotifyPanel spotify={spotify} />
         </section>
       )}
 
@@ -199,6 +228,8 @@ export function Player({ template }: { template: TemplateDto }) {
         </p>
       )}
 
+      {!isIdle && !isFinished && <SpotifyBar spotify={spotify} onToggle={toggleMusic} />}
+
       <footer className="controls">
         {view.canStart && (
           <button className="button button--primary" onClick={start} disabled={painBefore === null}>
@@ -216,7 +247,7 @@ export function Player({ template }: { template: TemplateDto }) {
           </button>
         )}
         {view.canResume && (
-          <button className="button button--primary" onClick={() => send('resume')}>
+          <button className="button button--primary" onClick={resume}>
             Retomar
           </button>
         )}

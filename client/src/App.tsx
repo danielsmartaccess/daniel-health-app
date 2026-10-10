@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { DeviceKeyScreen } from './DeviceKeyScreen';
 import { captureDeviceKeyFromUrl, forgetDeviceKey, readDeviceKey } from './deviceKey';
 import { RecoveryScreen } from './recovery/RecoveryScreen';
+import { CALLBACK_PATH } from './spotify/auth';
+import { SpotifyCallback } from './spotify/SpotifyCallback';
 import { TrainingScreen } from './TrainingScreen';
 
 type Tab = 'treino' | 'recuperacao';
@@ -16,6 +18,9 @@ export function App() {
     readDeviceKey() ? 'ok' : 'missing',
   );
   const [tab, setTab] = useState<Tab>(tabFromPath);
+  const [spotifyCallback, setSpotifyCallback] = useState(
+    () => window.location.pathname === CALLBACK_PATH,
+  );
 
   useEffect(() => {
     const onPop = () => setTab(tabFromPath());
@@ -33,6 +38,19 @@ export function App() {
     history.pushState(null, '', next === 'recuperacao' ? '/recuperacao' : '/');
     setTab(next);
   };
+
+  // Volta do login do Spotify (/spotify/callback): conclui e retorna ao treino.
+  if (spotifyCallback) {
+    return (
+      <SpotifyCallback
+        onDone={() => {
+          history.replaceState(null, '', '/');
+          setTab('treino');
+          setSpotifyCallback(false);
+        }}
+      />
+    );
+  }
 
   if (key !== 'ok') {
     return <DeviceKeyScreen rejected={key === 'rejected'} onSaved={() => setKey('ok')} />;

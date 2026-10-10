@@ -504,6 +504,30 @@ body {
   }
 }
 
+/* ─── Música (Spotify, cards 5.1/5.2) ─── */
+.music {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.music__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.music__title {
+  font-weight: 700;
+}
+.button--small {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 1rem;
+}
+
 /* ─── Painel de recuperação (card 4.1) ─── */
 .recovery {
   flex: 1;

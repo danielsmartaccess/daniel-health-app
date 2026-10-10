@@ -213,6 +213,31 @@ export type Database = {
           },
         ];
       };
+      knee_spotify_sessions: {
+        Row: {
+          id: string;
+          playlist_or_track_name: string | null;
+          session_id: string;
+          spotify_uri: string | null;
+          started_at: string;
+        };
+        Insert: {
+          playlist_or_track_name: string | null;
+          session_id: string;
+          spotify_uri: string;
+          started_at: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'knee_spotify_sessions_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'knee_workout_sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       knee_swim_logs: {
         Row: {
           active_kcal: number | null;

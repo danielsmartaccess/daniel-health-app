@@ -3,6 +3,7 @@ import type {
   FinishSessionBody,
   RecoveryEvent,
   SessionItem,
+  SessionMusicBody,
   SwimLogBody,
   SwimLogDto,
   TemplateDto,
@@ -36,6 +37,12 @@ export interface KneeRepository {
   ): Promise<{ id: string; startedAt: string; endedAt: string }>;
   createSwim(dailyLogId: string, date: string, body: SwimLogBody): Promise<SwimLogDto>;
   listSwims(limit: number): Promise<SwimLogDto[]>;
+  /** 5.2 — registra a música tocada numa sessão (knee_spotify_sessions). */
+  addSessionMusic(
+    sessionId: string,
+    music: SessionMusicBody,
+    startedAt: string,
+  ): Promise<{ id: string }>;
   /** Treinos de core (visão knee_recovery_daily) + natações, com sono/peso/álcool do dia. */
   listRecovery(): Promise<RecoveryEvent[]>;
 }
@@ -205,6 +212,26 @@ export class SupabaseKneeRepository implements KneeRepository {
       .limit(limit);
     if (error) throw error;
     return data.map((row) => toSwimDto(row, row.daily_logs.date));
+  }
+
+  async addSessionMusic(
+    sessionId: string,
+    music: SessionMusicBody,
+    startedAt: string,
+  ): Promise<{ id: string }> {
+    const { data, error } = await this.db
+      .from('knee_spotify_sessions')
+      .insert({
+        session_id: sessionId,
+        spotify_uri: music.spotifyUri,
+        playlist_or_track_name: music.name,
+        started_at: startedAt,
+      })
+      .select('id')
+      .single();
+    if (error?.code === FK_VIOLATION) throw notFound('Sessão');
+    if (error) throw error;
+    return { id: data.id };
   }
 
   async listRecovery(): Promise<RecoveryEvent[]> {

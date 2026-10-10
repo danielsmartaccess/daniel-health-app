@@ -36,6 +36,11 @@ function fakeApi(failures: unknown[] = []) {
       calls.push(`item:${sessionId}:${i.setNumber}`);
       return { id: `item-${i.setNumber}` };
     },
+    addSessionMusic: async (sessionId: string, music: { spotifyUri: string }) => {
+      await next();
+      calls.push(`music:${sessionId}:${music.spotifyUri}`);
+      return { id: 'music-1' };
+    },
     finishSession: async (sessionId: string) => {
       await next();
       calls.push(`finish:${sessionId}`);
@@ -134,6 +139,29 @@ describe('SessionSync', () => {
     };
     t.sync.finish({ painAfter: 1 });
     await settle();
+    expect(t.sync.snapshot.status).toBe('saved');
+  });
+
+  it('música entra na fila na ordem, depois da sessão criada', async () => {
+    const t = setup();
+    t.sync.start(startBody);
+    t.sync.recordMusic({ spotifyUri: 'spotify:playlist:abc', name: 'Treino' });
+    t.sync.addItem(item(1));
+    await settle();
+    expect(t.calls).toEqual(['create', 'music:sess-1:spotify:playlist:abc', 'item:sess-1:1']);
+  });
+
+  it('falha definitiva ao registrar música é ignorada: o treino continua salvando', async () => {
+    const t = setup();
+    t.sync.start(startBody);
+    await settle();
+    t.api.addSessionMusic = async () => {
+      throw new ApiHttpError(400, 'URI do Spotify inválida');
+    };
+    t.sync.recordMusic({ spotifyUri: 'spotify:playlist:abc', name: null });
+    t.sync.finish({ painAfter: 1 });
+    await settle();
+    expect(t.calls).toEqual(['create', 'finish:sess-1']);
     expect(t.sync.snapshot.status).toBe('saved');
   });
 

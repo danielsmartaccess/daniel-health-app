@@ -261,6 +261,42 @@ describe('natação (2.4)', () => {
   });
 });
 
+describe('POST /api/sessions/:id/music (5.2)', () => {
+  it('registra a música da sessão com o horário do servidor', async () => {
+    const session = await call('POST', '/sessions', {
+      templateId: TEMPLATE_ID,
+      painBefore: 1,
+      onAntiInflammatory: false,
+    });
+    const id = session.body.id as string;
+    const res = await call('POST', `/sessions/${id}/music`, {
+      spotifyUri: 'spotify:playlist:37i9dQZF1DX76Wlfdnj7AP',
+      name: 'Treino',
+    });
+    expect(res.status).toBe(201);
+    expect(repo.music).toEqual([
+      {
+        sessionId: id,
+        music: { spotifyUri: 'spotify:playlist:37i9dQZF1DX76Wlfdnj7AP', name: 'Treino' },
+        startedAt: '2026-10-11T02:30:00.000Z',
+      },
+    ]);
+  });
+
+  it('400 para link que não é URI do Spotify; 404 para sessão inexistente', async () => {
+    const body = { spotifyUri: 'https://open.spotify.com/playlist/x', name: null };
+    expect((await call('POST', `/sessions/${MISSING}/music`, body)).status).toBe(400);
+    expect(
+      (
+        await call('POST', `/sessions/${MISSING}/music`, {
+          spotifyUri: 'spotify:track:4uLU6hMCjMI75M1A2tKUQC',
+          name: null,
+        })
+      ).status,
+    ).toBe(404);
+  });
+});
+
 describe('GET /api/recovery (4.1)', () => {
   it('devolve os eventos em ordem cronológica e exige a chave', async () => {
     const base = {

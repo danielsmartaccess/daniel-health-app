@@ -4,6 +4,7 @@ import {
   finishSessionBodySchema,
   idSchema,
   sessionItemSchema,
+  sessionMusicBodySchema,
 } from './schemas';
 
 const TEMPLATE_ID = '6ac8cc81-f371-4a0d-9f2d-f944b7f23148';
@@ -67,6 +68,34 @@ describe('sessionItemSchema', () => {
     expect(sessionItemSchema.safeParse({ ...valid, actualDurationSeconds: -1 }).success).toBe(
       false,
     );
+  });
+});
+
+describe('sessionMusicBodySchema', () => {
+  it('aceita URI de playlist e de faixa, com ou sem nome', () => {
+    expect(
+      sessionMusicBodySchema.safeParse({
+        spotifyUri: 'spotify:playlist:37i9dQZF1DX76Wlfdnj7AP',
+        name: 'Treino',
+      }).success,
+    ).toBe(true);
+    expect(
+      sessionMusicBodySchema.safeParse({
+        spotifyUri: 'spotify:track:4uLU6hMCjMI75M1A2tKUQC',
+        name: null,
+      }).success,
+    ).toBe(true);
+  });
+  it('rejeita link web e URI malformada', () => {
+    expect(
+      sessionMusicBodySchema.safeParse({
+        spotifyUri: 'https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP',
+        name: null,
+      }).success,
+    ).toBe(false);
+    expect(
+      sessionMusicBodySchema.safeParse({ spotifyUri: 'spotify:user:x y', name: null }).success,
+    ).toBe(false);
   });
 });
 
