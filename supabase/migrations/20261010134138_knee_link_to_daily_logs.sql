@@ -1,6 +1,6 @@
 -- migration: knee_link_to_daily_logs  (ADITIVA — não altera nenhuma tabela antiga)
--- Status: PENDENTE. Só aplicar após OK explícito do Dani (Card 0.2).
--- Rollback: 20261010140000_knee_link_to_daily_logs.rollback.sql
+-- Status: APLICADA em 2026-10-10 com OK do Dani (Card 0.2).
+-- Rollback: 20261010134138_knee_link_to_daily_logs.rollback.sql
 
 alter table public.knee_workout_sessions
   add column if not exists daily_log_id uuid references public.daily_logs(id) on delete restrict,

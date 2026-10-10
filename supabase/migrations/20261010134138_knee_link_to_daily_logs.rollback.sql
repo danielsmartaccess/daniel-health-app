@@ -1,4 +1,4 @@
--- rollback de 20261010140000_knee_link_to_daily_logs
+-- rollback de 20261010134138_knee_link_to_daily_logs
 -- Observação: os REVOKEs não são desfeitos de propósito. As tabelas knee_* já são
 -- deny-all por RLS sem policies; devolver GRANTs ao anon não traria benefício.
 drop view if exists public.knee_recovery_daily;
