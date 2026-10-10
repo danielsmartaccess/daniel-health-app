@@ -261,6 +261,80 @@ describe('natação (2.4)', () => {
   });
 });
 
+describe('POST /api/sessions/:id/music (5.2)', () => {
+  it('registra a música da sessão com o horário do servidor', async () => {
+    const session = await call('POST', '/sessions', {
+      templateId: TEMPLATE_ID,
+      painBefore: 1,
+      onAntiInflammatory: false,
+    });
+    const id = session.body.id as string;
+    const res = await call('POST', `/sessions/${id}/music`, {
+      spotifyUri: 'spotify:playlist:37i9dQZF1DX76Wlfdnj7AP',
+      name: 'Treino',
+    });
+    expect(res.status).toBe(201);
+    expect(repo.music).toEqual([
+      {
+        sessionId: id,
+        music: { spotifyUri: 'spotify:playlist:37i9dQZF1DX76Wlfdnj7AP', name: 'Treino' },
+        startedAt: '2026-10-11T02:30:00.000Z',
+      },
+    ]);
+  });
+
+  it('400 para link que não é URI do Spotify; 404 para sessão inexistente', async () => {
+    const body = { spotifyUri: 'https://open.spotify.com/playlist/x', name: null };
+    expect((await call('POST', `/sessions/${MISSING}/music`, body)).status).toBe(400);
+    expect(
+      (
+        await call('POST', `/sessions/${MISSING}/music`, {
+          spotifyUri: 'spotify:track:4uLU6hMCjMI75M1A2tKUQC',
+          name: null,
+        })
+      ).status,
+    ).toBe(404);
+  });
+});
+
+describe('GET /api/recovery (4.1)', () => {
+  it('devolve os eventos em ordem cronológica e exige a chave', async () => {
+    const base = {
+      painBefore: 2,
+      painAfter: 1,
+      onAntiInflammatory: true,
+      sleepHours: 7,
+      sleepScore: null,
+      weightKg: 75,
+      alcoholDoses: 0,
+    };
+    repo.recovery = [
+      {
+        ...base,
+        id: 'b',
+        kind: 'core',
+        date: '2026-10-10',
+        startedAt: '2026-10-10T12:00:00Z',
+        distanceM: null,
+        kick: null,
+      },
+      {
+        ...base,
+        id: 'a',
+        kind: 'swim',
+        date: '2026-10-09',
+        startedAt: '2026-10-09T19:12:00Z',
+        distanceM: 1552,
+        kick: 'none',
+      },
+    ];
+    const res = await call('GET', '/recovery');
+    expect(res.status).toBe(200);
+    expect((res.body.events as { id: string }[]).map((e) => e.id)).toEqual(['a', 'b']);
+    expect((await call('GET', '/recovery', undefined, null)).status).toBe(401);
+  });
+});
+
 describe('erros internos', () => {
   it('500 genérico, sem vazar a mensagem do banco', async () => {
     await new Promise((resolve) => server.close(resolve));

@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type {
   FinishSessionBody,
+  RecoveryEvent,
   SessionItem,
+  SessionMusicBody,
   SwimLogBody,
   SwimLogDto,
   TemplateDto,
@@ -88,6 +90,21 @@ export class MemoryKneeRepository implements KneeRepository {
     };
     this.swims.push(swim);
     return swim;
+  }
+
+  readonly music: { sessionId: string; music: SessionMusicBody; startedAt: string }[] = [];
+
+  async addSessionMusic(sessionId: string, music: SessionMusicBody, startedAt: string) {
+    if (!this.sessions.has(sessionId)) throw notFound('Sessão');
+    this.music.push({ sessionId, music, startedAt });
+    return { id: randomUUID() };
+  }
+
+  /** Eventos do painel definidos pelo teste. */
+  recovery: RecoveryEvent[] = [];
+
+  async listRecovery() {
+    return [...this.recovery].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   }
 
   async listSwims(limit: number) {

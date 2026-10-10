@@ -36,8 +36,16 @@ export interface PlayerView {
   next: string | null;
   overall: number;
   segments: SegmentView[];
+  /** Rótulo curto acima do título: "Agora", "Pausado" ou vazio. */
+  label: string;
   canStart: boolean;
   canComplete: boolean;
+  canPause: boolean;
+  canResume: boolean;
+  canSkip: boolean;
+  canFinish: boolean;
+  /** Tela deve ficar acesa (treino em andamento, inclusive pausado). */
+  keepAwake: boolean;
 }
 
 export function toPlayerView(state: WorkoutState, now: number): PlayerView {
@@ -47,6 +55,7 @@ export function toPlayerView(state: WorkoutState, now: number): PlayerView {
   const remaining = block ? remainingMs(state, now) : null;
   const elapsed = block ? elapsedMs(state, now) : 0;
   const exerciseIds = uniqueExerciseIds(state.plan);
+  const active = state.status === 'running' || state.status === 'resting';
 
   return {
     status: state.status,
@@ -62,8 +71,14 @@ export function toPlayerView(state: WorkoutState, now: number): PlayerView {
     next: nextLabel(state),
     overall: overallProgress(state, now),
     segments: segmentsOf(state, elapsed),
+    label: state.status === 'paused' ? 'Pausado' : block?.kind === 'work' ? 'Agora' : '',
     canStart: state.status === 'idle' && state.plan.length > 0,
     canComplete: state.status === 'running' && block?.kind === 'work' && block.mode === 'reps',
+    canPause: active,
+    canResume: state.status === 'paused',
+    canSkip: active,
+    canFinish: inProgress,
+    keepAwake: inProgress,
   };
 }
 

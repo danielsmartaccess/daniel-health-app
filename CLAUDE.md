@@ -146,6 +146,15 @@ API: `GET /api/templates/:id`, `POST /api/sessions`, `POST /api/sessions/:id/ite
 A API exige `Authorization: Bearer <DEVICE_TOKEN>` (exceto `/api/health`); o celular recebe a chave pelo
 link `https://<domínio>/#chave=<DEVICE_TOKEN>`, que a salva no aparelho e limpa a URL.
 
+**Spotify (cards 5.1/5.2):** login Authorization Code + PKCE feito no navegador (a Vercel não tem disco
+para tokens no servidor). Tokens ficam só no aparelho (localStorage), nunca no Supabase; escopos
+`user-modify-playback-state` e `user-read-playback-state`. Client ID público em `VITE_SPOTIFY_CLIENT_ID`
+(variável de build na Vercel; `client/.env.local` no dev). Retornos cadastrados no app do Spotify:
+`https://treino-joelho.vercel.app/spotify/callback` e `http://127.0.0.1:5173/spotify/callback`.
+Regras verificadas em 2026-10-10: dono do app em Development Mode precisa de Premium; até 5 usuários
+na allowlist; controle de reprodução exige Premium; `localhost` não é aceito como retorno.
+A música registrada vai para `knee_spotify_sessions` via `POST /api/sessions/:id/music`.
+
 **Segredos:** a chave service_role fica só em `server/.env`. `scripts/check-secrets.mjs` roda no `check`
 e no pre-commit local e bloqueia `sb_secret_...` e JWT service_role em arquivos rastreados.
 `server/src/database.types.ts` é um recorte dos tipos gerados: só contém as tabelas que o servidor pode tocar.

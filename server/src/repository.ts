@@ -1,7 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   FinishSessionBody,
+  RecoveryEvent,
   SessionItem,
+  SessionMusicBody,
   SwimLogBody,
   SwimLogDto,
   TemplateDto,
@@ -35,6 +37,14 @@ export interface KneeRepository {
   ): Promise<{ id: string; startedAt: string; endedAt: string }>;
   createSwim(dailyLogId: string, date: string, body: SwimLogBody): Promise<SwimLogDto>;
   listSwims(limit: number): Promise<SwimLogDto[]>;
+  /** 5.2 — registra a música tocada numa sessão (knee_spotify_sessions). */
+  addSessionMusic(
+    sessionId: string,
+    music: SessionMusicBody,
+    startedAt: string,
+  ): Promise<{ id: string }>;
+  /** Treinos de core (visão knee_recovery_daily) + natações, com sono/peso/álcool do dia. */
+  listRecovery(): Promise<RecoveryEvent[]>;
 }
 
 const FK_VIOLATION = '23503';
@@ -204,6 +214,82 @@ export class SupabaseKneeRepository implements KneeRepository {
     return data.map((row) => toSwimDto(row, row.daily_logs.date));
   }
 
+  async addSessionMusic(
+    sessionId: string,
+    music: SessionMusicBody,
+    startedAt: string,
+  ): Promise<{ id: string }> {
+    const { data, error } = await this.db
+      .from('knee_spotify_sessions')
+      .insert({
+        session_id: sessionId,
+        spotify_uri: music.spotifyUri,
+        playlist_or_track_name: music.name,
+        started_at: startedAt,
+      })
+      .select('id')
+      .single();
+    if (error?.code === FK_VIOLATION) throw notFound('Sessão');
+    if (error) throw error;
+    return { id: data.id };
+  }
+
+  async listRecovery(): Promise<RecoveryEvent[]> {
+    const [sessions, swims] = await Promise.all([
+      this.db.from('knee_recovery_daily').select('*'),
+      this.db.from('knee_swim_logs').select(
+        `id, started_at, pain_before, pain_after, on_anti_inflammatory, distance_m, kick,
+           daily_logs (
+             date,
+             biometrics ( weight_kg, sleep_hours, sleep_score ),
+             alcohol_log ( amount_doses )
+           )`,
+      ),
+    ]);
+    if (sessions.error) throw sessions.error;
+    if (swims.error) throw swims.error;
+
+    const core: RecoveryEvent[] = sessions.data
+      .filter((row) => row.session_id && row.date && row.started_at)
+      .map((row) => ({
+        id: row.session_id!,
+        kind: 'core',
+        date: row.date!,
+        startedAt: row.started_at!,
+        painBefore: row.pain_before,
+        painAfter: row.pain_after,
+        onAntiInflammatory: row.on_anti_inflammatory,
+        sleepHours: toNumber(row.sleep_hours),
+        sleepScore: row.sleep_score,
+        weightKg: toNumber(row.weight_kg),
+        alcoholDoses: toNumber(row.alcohol_doses),
+        distanceM: null,
+        kick: null,
+      }));
+
+    const swim: RecoveryEvent[] = swims.data.map((row) => {
+      const day = row.daily_logs;
+      const bio = day.biometrics;
+      return {
+        id: row.id,
+        kind: 'swim',
+        date: day.date,
+        startedAt: row.started_at,
+        painBefore: row.pain_before,
+        painAfter: row.pain_after,
+        onAntiInflammatory: row.on_anti_inflammatory,
+        sleepHours: toNumber(bio?.sleep_hours ?? null),
+        sleepScore: bio?.sleep_score ?? null,
+        weightKg: toNumber(bio?.weight_kg ?? null),
+        alcoholDoses: toNumber(day.alcohol_log?.amount_doses ?? null),
+        distanceM: row.distance_m,
+        kick: row.kick,
+      };
+    });
+
+    return [...core, ...swim].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+  }
+
   private async assertSessionOpen(sessionId: string): Promise<void> {
     const { data, error } = await this.db
       .from('knee_workout_sessions')
@@ -217,6 +303,13 @@ export class SupabaseKneeRepository implements KneeRepository {
 }
 
 type SwimRow = Database['public']['Tables']['knee_swim_logs']['Row'];
+
+/** Colunas numeric do Postgres podem chegar como string; normaliza para number. */
+function toNumber(value: number | string | null): number | null {
+  if (value === null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 function toSwimDto(row: SwimRow, date: string): SwimLogDto {
   return {

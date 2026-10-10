@@ -4,7 +4,7 @@
  * Só entram aqui as tabelas que o servidor pode tocar. Isso torna as regras de fusão
  * verificáveis pelo compilador: `medications`, `lab_results`, `exercises` (antiga), `meals`,
  * `profiles` e a RPC `upsert_apple_day` não existem para o servidor.
- * `biometrics` e `alcohol_log` são lidas só através da view `knee_recovery_daily`.
+ * `biometrics` e `alcohol_log` entram só com as colunas do painel e sem Insert/Update.
  *
  * Ao mudar o schema: regenere os tipos e recorte de novo, mantendo esta regra.
  */
@@ -30,6 +30,46 @@ export type Database = {
         };
         Update: never;
         Relationships: [];
+      };
+      // Camada antiga, SOMENTE LEITURA (Insert/Update: never): o painel cruza dor × sono/peso/álcool.
+      biometrics: {
+        Row: {
+          active_energy_cal: number | null;
+          id: string;
+          log_id: string;
+          sleep_hours: number | null;
+          sleep_score: number | null;
+          weight_kg: number | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'biometrics_log_id_fkey';
+            columns: ['log_id'];
+            isOneToOne: true;
+            referencedRelation: 'daily_logs';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      alcohol_log: {
+        Row: {
+          amount_doses: number | null;
+          id: string;
+          log_id: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'alcohol_log_log_id_fkey';
+            columns: ['log_id'];
+            isOneToOne: true;
+            referencedRelation: 'daily_logs';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       knee_exercises: {
         Row: {
@@ -166,6 +206,31 @@ export type Database = {
           },
           {
             foreignKeyName: 'knee_workout_session_items_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'knee_workout_sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      knee_spotify_sessions: {
+        Row: {
+          id: string;
+          playlist_or_track_name: string | null;
+          session_id: string;
+          spotify_uri: string | null;
+          started_at: string;
+        };
+        Insert: {
+          playlist_or_track_name: string | null;
+          session_id: string;
+          spotify_uri: string;
+          started_at: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'knee_spotify_sessions_session_id_fkey';
             columns: ['session_id'];
             isOneToOne: false;
             referencedRelation: 'knee_workout_sessions';

@@ -48,6 +48,18 @@ export const finishSessionBodySchema = z.strictObject({
 });
 export type FinishSessionBody = z.infer<typeof finishSessionBodySchema>;
 
+// ─── Música (Spotify) tocada num treino ─────────────────────────────────────────
+
+/** URI do Spotify: spotify:<tipo>:<id>. */
+export const SPOTIFY_URI = /^spotify:(track|playlist|album|artist|episode|show):[A-Za-z0-9]{1,64}$/;
+
+/** POST /api/sessions/:id/music */
+export const sessionMusicBodySchema = z.strictObject({
+  spotifyUri: z.string().regex(SPOTIFY_URI, 'URI do Spotify inválida'),
+  name: z.string().trim().max(300).nullable(),
+});
+export type SessionMusicBody = z.infer<typeof sessionMusicBodySchema>;
+
 // ─── Natação (registro manual, não guiada) ──────────────────────────────────────
 
 export const SWIM_STROKES = [

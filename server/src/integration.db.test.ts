@@ -149,4 +149,12 @@ describe('fluxo completo contra o banco real', () => {
     expect(swims.some((s) => s.id === created.swimId)).toBe(true);
     expect(swims.some((s) => s.date === '2026-10-09')).toBe(true); // registro real de 09/10
   });
+  it('4.1 painel: devolve a natação real de 09/10 cruzada com o dia', async () => {
+    const res = await call('GET', '/recovery');
+    expect(res.status).toBe(200);
+    const events = res.body.events as { kind: string; date: string; distanceM: number | null }[];
+    expect(
+      events.some((e) => e.kind === 'swim' && e.date === '2026-10-09' && e.distanceM === 1552),
+    ).toBe(true);
+  });
 });

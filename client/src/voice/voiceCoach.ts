@@ -91,6 +91,15 @@ export class VoiceCoach<V extends VoiceLike, U extends UtteranceLike<V>> {
     }
   }
 
+  /** Interrompe a fala em andamento (ex.: ao pausar o treino). */
+  silence(): void {
+    try {
+      this.synth?.cancel();
+    } catch {
+      // idem speak(): a voz nunca derruba o treino
+    }
+  }
+
   private refreshVoice(): void {
     this.voice = this.synth ? pickVoice(this.synth.getVoices()) : null;
   }

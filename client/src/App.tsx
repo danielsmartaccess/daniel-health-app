@@ -1,66 +1,86 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TemplateDto } from '@knee/shared';
-import { api, UnauthorizedError } from './api';
-import { CORE_TEMPLATE_ID } from './config';
 import { DeviceKeyScreen } from './DeviceKeyScreen';
 import { captureDeviceKeyFromUrl, forgetDeviceKey, readDeviceKey } from './deviceKey';
-import { Player } from './player/Player';
+import { RecoveryScreen } from './recovery/RecoveryScreen';
+import { CALLBACK_PATH } from './spotify/auth';
+import { SpotifyCallback } from './spotify/SpotifyCallback';
+import { TrainingScreen } from './TrainingScreen';
 
-type Load =
-  | { status: 'loading' }
-  | { status: 'needs-key'; rejected: boolean }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; template: TemplateDto };
+type Tab = 'treino' | 'recuperacao';
+
+const tabFromPath = (): Tab =>
+  window.location.pathname.startsWith('/recuperacao') ? 'recuperacao' : 'treino';
 
 captureDeviceKeyFromUrl();
 
 export function App() {
-  const [load, setLoad] = useState<Load>(() =>
-    readDeviceKey() ? { status: 'loading' } : { status: 'needs-key', rejected: false },
+  const [key, setKey] = useState<'ok' | 'missing' | 'rejected'>(() =>
+    readDeviceKey() ? 'ok' : 'missing',
+  );
+  const [tab, setTab] = useState<Tab>(tabFromPath);
+  const [spotifyCallback, setSpotifyCallback] = useState(
+    () => window.location.pathname === CALLBACK_PATH,
   );
 
-  const fetchTemplate = useCallback(() => {
-    let cancelled = false;
-    api
-      .getTemplate(CORE_TEMPLATE_ID)
-      .then((template) => !cancelled && setLoad({ status: 'ready', template }))
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        if (error instanceof UnauthorizedError) {
-          forgetDeviceKey();
-          setLoad({ status: 'needs-key', rejected: true });
-          return;
-        }
-        setLoad({
-          status: 'error',
-          message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    const onPop = () => setTab(tabFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  useEffect(() => {
-    if (load.status === 'loading') return fetchTemplate();
-  }, [load.status, fetchTemplate]);
+  const onUnauthorized = useCallback(() => {
+    forgetDeviceKey();
+    setKey('rejected');
+  }, []);
 
-  if (load.status === 'needs-key') {
+  const go = (next: Tab) => {
+    if (next === tab) return;
+    history.pushState(null, '', next === 'recuperacao' ? '/recuperacao' : '/');
+    setTab(next);
+  };
+
+  // Volta do login do Spotify (/spotify/callback): conclui e retorna ao treino.
+  if (spotifyCallback) {
     return (
-      <DeviceKeyScreen rejected={load.rejected} onSaved={() => setLoad({ status: 'loading' })} />
+      <SpotifyCallback
+        onDone={() => {
+          history.replaceState(null, '', '/');
+          setTab('treino');
+          setSpotifyCallback(false);
+        }}
+      />
     );
   }
-  if (load.status === 'loading') return <p className="screen-message">Carregando treino…</p>;
-  if (load.status === 'error') {
-    return (
-      <div className="screen-message">
-        <p>Não foi possível carregar o treino.</p>
-        <p className="muted">{load.message}</p>
-        <button className="button" onClick={() => setLoad({ status: 'loading' })}>
-          Tentar de novo
+
+  if (key !== 'ok') {
+    return <DeviceKeyScreen rejected={key === 'rejected'} onSaved={() => setKey('ok')} />;
+  }
+
+  return (
+    <div className="app">
+      <nav className="tabs" aria-label="Seções">
+        <button
+          className="tabs__item"
+          aria-current={tab === 'treino' ? 'page' : undefined}
+          onClick={() => go('treino')}
+        >
+          Treino
         </button>
+        <button
+          className="tabs__item"
+          aria-current={tab === 'recuperacao' ? 'page' : undefined}
+          onClick={() => go('recuperacao')}
+        >
+          Recuperação
+        </button>
+      </nav>
+      {/* O treino fica montado (só escondido) para não perder um treino em andamento. */}
+      <div className="app__screen" hidden={tab !== 'treino'}>
+        <TrainingScreen onUnauthorized={onUnauthorized} />
       </div>
-    );
-  }
-  return <Player template={load.template} />;
+      <div className="app__screen" hidden={tab !== 'recuperacao'}>
+        <RecoveryScreen active={tab === 'recuperacao'} onUnauthorized={onUnauthorized} />
+      </div>
+    </div>
+  );
 }
