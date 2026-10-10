@@ -19,5 +19,11 @@ Toda mudança de schema entra aqui como migration versionada, com rollback ao la
 As sete primeiras foram copiadas de `supabase_migrations.schema_migrations` em 2026-10-10.
 O conteúdo SQL confere por hash MD5 com o que está no banco; só o cabeçalho de comentário foi acrescentado.
 
+## Propostas (não aplicadas)
+
+Ficam em `_pending/` até a aprovação. Ao aplicar, o arquivo sai de `_pending/` e ganha a versão real.
+
+- `_pending/knee_swim_logs.sql`: Card 0.5, registro manual de natação.
+
 Os dados iniciais de `knee_*` estão em `../seed/knee_seed.sql` (idempotente, com os IDs de produção).
 `../schema.sql` é um retrato da v2.0 e está desatualizado: use as migrations como fonte da verdade.
