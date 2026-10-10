@@ -7,5 +7,6 @@
  */
 export * from './time';
 export * from './schemas';
+export * from './api';
 export * from './workout/plan';
 export * from './workout/machine';

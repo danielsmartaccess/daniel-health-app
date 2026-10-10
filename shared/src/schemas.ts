@@ -47,3 +47,45 @@ export const finishSessionBodySchema = z.strictObject({
   freeNotes: z.string().trim().max(2000).nullable().optional(),
 });
 export type FinishSessionBody = z.infer<typeof finishSessionBodySchema>;
+
+// ─── Natação (registro manual, não guiada) ──────────────────────────────────────
+
+export const SWIM_STROKES = [
+  'freestyle',
+  'backstroke',
+  'breaststroke',
+  'butterfly',
+  'mixed',
+] as const;
+/** 'none' = só braço (pull buoy). É o campo que separa natação segura de natação de risco. */
+export const SWIM_KICKS = ['none', 'flutter', 'dolphin', 'breaststroke', 'fins'] as const;
+
+/** POST /api/swims — campos do resumo do Apple Watch + variáveis do joelho. */
+export const swimLogBodySchema = z
+  .strictObject({
+    startedAt: z.iso.datetime({ offset: true }),
+    endedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+    durationSeconds: z
+      .number()
+      .int()
+      .min(1)
+      .max(6 * 60 * 60),
+    distanceM: z.number().int().min(1).max(20_000),
+    poolLengthM: z.number().positive().max(100).nullable().optional(),
+    laps: z.number().int().min(0).nullable().optional(),
+    activeKcal: z.number().int().min(0).nullable().optional(),
+    totalKcal: z.number().int().min(0).nullable().optional(),
+    avgHr: z.number().int().min(30).max(230).nullable().optional(),
+    effort: z.number().int().min(1).max(10).nullable().optional(),
+    stroke: z.enum(SWIM_STROKES).nullable().optional(),
+    kick: z.enum(SWIM_KICKS),
+    painBefore: painSchema.nullable().optional(),
+    painAfter: painSchema.nullable().optional(),
+    onAntiInflammatory: z.boolean().nullable().optional(),
+    notes: z.string().trim().max(2000).nullable().optional(),
+  })
+  .refine((s) => !s.endedAt || Date.parse(s.endedAt) > Date.parse(s.startedAt), {
+    message: 'O fim precisa ser depois do início',
+    path: ['endedAt'],
+  });
+export type SwimLogBody = z.infer<typeof swimLogBodySchema>;

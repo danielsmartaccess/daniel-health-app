@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { loadEnv } from './env';
 
-const SECRET = 'sb_secret_super_confidencial_123456789';
+// Valor falso, de propósito fora do formato sb_secret_ (o check-secrets bloquearia).
+const SECRET = 'fake-service-role-key-only-for-tests-0000';
 const valid = { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: SECRET };
 
 describe('loadEnv', () => {

@@ -12,7 +12,16 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['server/**/*.ts', 'shared/**/*.ts', '*.js'],
+    rules: {
+      // `_` marca parâmetro não usado de propósito (ex.: `_next` no error handler do Express).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+    },
+  },
+  {
+    files: ['server/**/*.ts', 'shared/**/*.ts', '*.js', 'scripts/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
   {

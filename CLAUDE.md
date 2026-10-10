@@ -134,7 +134,15 @@ client/   → React + Vite + TS. Só fala com /api. Nunca recebe chave do Supaba
 supabase/migrations/ → migrations versionadas + rollback
 ```
 
-Comandos: `npm install`, `npm run dev` (server 127.0.0.1:3001 + client 127.0.0.1:5173), `npm run check`.
+Comandos: `npm install`, `npm run dev` (server 127.0.0.1:3001 + client 127.0.0.1:5173), `npm run check`
+(segredos + lint + formatação + tipos + testes), `npm run test:db -w @knee/server` (banco REAL; limpa o que cria).
+
+API: `GET /api/templates/:id`, `POST /api/sessions`, `POST /api/sessions/:id/items`,
+`PATCH /api/sessions/:id/finish`, `POST /api/swims`, `GET /api/swims`.
+
+**Segredos:** a chave service_role fica só em `server/.env`. `scripts/check-secrets.mjs` roda no `check`
+e no pre-commit local e bloqueia `sb_secret_...` e JWT service_role em arquivos rastreados.
+`server/src/database.types.ts` é um recorte dos tipos gerados: só contém as tabelas que o servidor pode tocar.
 
 **Regras invioláveis no banco:**
 
