@@ -2,6 +2,7 @@ import type {
   ApiError,
   CreateSessionBody,
   FinishSessionBody,
+  RecoveryDto,
   SessionFinishedDto,
   SessionItem,
   SessionItemCreatedDto,
@@ -58,6 +59,7 @@ export const api = {
     post<SessionItemCreatedDto>(`/sessions/${sessionId}/items`, item),
   finishSession: (sessionId: string, body: FinishSessionBody) =>
     post<SessionFinishedDto>(`/sessions/${sessionId}/finish`, body, 'PATCH'),
+  getRecovery: () => request<RecoveryDto>('/recovery'),
 };
 
 export type Api = typeof api;

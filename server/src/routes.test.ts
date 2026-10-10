@@ -261,6 +261,44 @@ describe('natação (2.4)', () => {
   });
 });
 
+describe('GET /api/recovery (4.1)', () => {
+  it('devolve os eventos em ordem cronológica e exige a chave', async () => {
+    const base = {
+      painBefore: 2,
+      painAfter: 1,
+      onAntiInflammatory: true,
+      sleepHours: 7,
+      sleepScore: null,
+      weightKg: 75,
+      alcoholDoses: 0,
+    };
+    repo.recovery = [
+      {
+        ...base,
+        id: 'b',
+        kind: 'core',
+        date: '2026-10-10',
+        startedAt: '2026-10-10T12:00:00Z',
+        distanceM: null,
+        kick: null,
+      },
+      {
+        ...base,
+        id: 'a',
+        kind: 'swim',
+        date: '2026-10-09',
+        startedAt: '2026-10-09T19:12:00Z',
+        distanceM: 1552,
+        kick: 'none',
+      },
+    ];
+    const res = await call('GET', '/recovery');
+    expect(res.status).toBe(200);
+    expect((res.body.events as { id: string }[]).map((e) => e.id)).toEqual(['a', 'b']);
+    expect((await call('GET', '/recovery', undefined, null)).status).toBe(401);
+  });
+});
+
 describe('erros internos', () => {
   it('500 genérico, sem vazar a mensagem do banco', async () => {
     await new Promise((resolve) => server.close(resolve));

@@ -1,66 +1,68 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TemplateDto } from '@knee/shared';
-import { api, UnauthorizedError } from './api';
-import { CORE_TEMPLATE_ID } from './config';
 import { DeviceKeyScreen } from './DeviceKeyScreen';
 import { captureDeviceKeyFromUrl, forgetDeviceKey, readDeviceKey } from './deviceKey';
-import { Player } from './player/Player';
+import { RecoveryScreen } from './recovery/RecoveryScreen';
+import { TrainingScreen } from './TrainingScreen';
 
-type Load =
-  | { status: 'loading' }
-  | { status: 'needs-key'; rejected: boolean }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; template: TemplateDto };
+type Tab = 'treino' | 'recuperacao';
+
+const tabFromPath = (): Tab =>
+  window.location.pathname.startsWith('/recuperacao') ? 'recuperacao' : 'treino';
 
 captureDeviceKeyFromUrl();
 
 export function App() {
-  const [load, setLoad] = useState<Load>(() =>
-    readDeviceKey() ? { status: 'loading' } : { status: 'needs-key', rejected: false },
+  const [key, setKey] = useState<'ok' | 'missing' | 'rejected'>(() =>
+    readDeviceKey() ? 'ok' : 'missing',
   );
-
-  const fetchTemplate = useCallback(() => {
-    let cancelled = false;
-    api
-      .getTemplate(CORE_TEMPLATE_ID)
-      .then((template) => !cancelled && setLoad({ status: 'ready', template }))
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        if (error instanceof UnauthorizedError) {
-          forgetDeviceKey();
-          setLoad({ status: 'needs-key', rejected: true });
-          return;
-        }
-        setLoad({
-          status: 'error',
-          message: error instanceof Error ? error.message : 'Erro desconhecido',
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [tab, setTab] = useState<Tab>(tabFromPath);
 
   useEffect(() => {
-    if (load.status === 'loading') return fetchTemplate();
-  }, [load.status, fetchTemplate]);
+    const onPop = () => setTab(tabFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
-  if (load.status === 'needs-key') {
-    return (
-      <DeviceKeyScreen rejected={load.rejected} onSaved={() => setLoad({ status: 'loading' })} />
-    );
+  const onUnauthorized = useCallback(() => {
+    forgetDeviceKey();
+    setKey('rejected');
+  }, []);
+
+  const go = (next: Tab) => {
+    if (next === tab) return;
+    history.pushState(null, '', next === 'recuperacao' ? '/recuperacao' : '/');
+    setTab(next);
+  };
+
+  if (key !== 'ok') {
+    return <DeviceKeyScreen rejected={key === 'rejected'} onSaved={() => setKey('ok')} />;
   }
-  if (load.status === 'loading') return <p className="screen-message">Carregando treino…</p>;
-  if (load.status === 'error') {
-    return (
-      <div className="screen-message">
-        <p>Não foi possível carregar o treino.</p>
-        <p className="muted">{load.message}</p>
-        <button className="button" onClick={() => setLoad({ status: 'loading' })}>
-          Tentar de novo
+
+  return (
+    <div className="app">
+      <nav className="tabs" aria-label="Seções">
+        <button
+          className="tabs__item"
+          aria-current={tab === 'treino' ? 'page' : undefined}
+          onClick={() => go('treino')}
+        >
+          Treino
         </button>
+        <button
+          className="tabs__item"
+          aria-current={tab === 'recuperacao' ? 'page' : undefined}
+          onClick={() => go('recuperacao')}
+        >
+          Recuperação
+        </button>
+      </nav>
+      {/* O treino fica montado (só escondido) para não perder um treino em andamento. */}
+      <div className="app__screen" hidden={tab !== 'treino'}>
+        <TrainingScreen onUnauthorized={onUnauthorized} />
       </div>
-    );
-  }
-  return <Player template={load.template} />;
+      <div className="app__screen" hidden={tab !== 'recuperacao'}>
+        <RecoveryScreen active={tab === 'recuperacao'} onUnauthorized={onUnauthorized} />
+      </div>
+    </div>
+  );
 }

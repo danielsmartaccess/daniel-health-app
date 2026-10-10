@@ -6,6 +6,7 @@ import {
   localDate,
   sessionItemSchema,
   swimLogBodySchema,
+  type RecoveryDto,
   type SessionFinishedDto,
   type SessionItemCreatedDto,
   type SessionStartedDto,
@@ -94,6 +95,12 @@ export function createApiRouter({ repo, ownerId, now }: ApiDeps): Router {
 
   router.get('/swims', async (_req, res) => {
     res.json((await repo.listSwims(100)) satisfies SwimLogDto[]);
+  });
+
+  // 4.1 — painel de recuperação: core + natação, com sono/peso/álcool do dia
+  router.get('/recovery', async (_req, res) => {
+    const body: RecoveryDto = { events: await repo.listRecovery() };
+    res.json(body);
   });
 
   return router;

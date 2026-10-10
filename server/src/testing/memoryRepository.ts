@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type {
   FinishSessionBody,
+  RecoveryEvent,
   SessionItem,
   SwimLogBody,
   SwimLogDto,
@@ -88,6 +89,13 @@ export class MemoryKneeRepository implements KneeRepository {
     };
     this.swims.push(swim);
     return swim;
+  }
+
+  /** Eventos do painel definidos pelo teste. */
+  recovery: RecoveryEvent[] = [];
+
+  async listRecovery() {
+    return [...this.recovery].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   }
 
   async listSwims(limit: number) {
