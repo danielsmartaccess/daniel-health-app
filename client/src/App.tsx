@@ -1,42 +1,62 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { TemplateDto } from '@knee/shared';
-import { api } from './api';
+import { api, UnauthorizedError } from './api';
 import { CORE_TEMPLATE_ID } from './config';
+import { DeviceKeyScreen } from './DeviceKeyScreen';
+import { captureDeviceKeyFromUrl, forgetDeviceKey, readDeviceKey } from './deviceKey';
 import { Player } from './player/Player';
 
 type Load =
   | { status: 'loading' }
+  | { status: 'needs-key'; rejected: boolean }
   | { status: 'error'; message: string }
   | { status: 'ready'; template: TemplateDto };
 
-export function App() {
-  const [load, setLoad] = useState<Load>({ status: 'loading' });
+captureDeviceKeyFromUrl();
 
-  useEffect(() => {
+export function App() {
+  const [load, setLoad] = useState<Load>(() =>
+    readDeviceKey() ? { status: 'loading' } : { status: 'needs-key', rejected: false },
+  );
+
+  const fetchTemplate = useCallback(() => {
     let cancelled = false;
     api
       .getTemplate(CORE_TEMPLATE_ID)
       .then((template) => !cancelled && setLoad({ status: 'ready', template }))
-      .catch(
-        (error: unknown) =>
-          !cancelled &&
-          setLoad({
-            status: 'error',
-            message: error instanceof Error ? error.message : 'Erro desconhecido',
-          }),
-      );
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (error instanceof UnauthorizedError) {
+          forgetDeviceKey();
+          setLoad({ status: 'needs-key', rejected: true });
+          return;
+        }
+        setLoad({
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Erro desconhecido',
+        });
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  useEffect(() => {
+    if (load.status === 'loading') return fetchTemplate();
+  }, [load.status, fetchTemplate]);
+
+  if (load.status === 'needs-key') {
+    return (
+      <DeviceKeyScreen rejected={load.rejected} onSaved={() => setLoad({ status: 'loading' })} />
+    );
+  }
   if (load.status === 'loading') return <p className="screen-message">Carregando treino…</p>;
   if (load.status === 'error') {
     return (
       <div className="screen-message">
         <p>Não foi possível carregar o treino.</p>
         <p className="muted">{load.message}</p>
-        <button className="button" onClick={() => window.location.reload()}>
+        <button className="button" onClick={() => setLoad({ status: 'loading' })}>
           Tentar de novo
         </button>
       </div>

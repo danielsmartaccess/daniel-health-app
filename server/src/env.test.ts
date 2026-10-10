@@ -3,7 +3,11 @@ import { loadEnv } from './env';
 
 // Valor falso, de propósito fora do formato sb_secret_ (o check-secrets bloquearia).
 const SECRET = 'fake-service-role-key-only-for-tests-0000';
-const valid = { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: SECRET };
+const valid = {
+  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: SECRET,
+  DEVICE_TOKEN: 'x'.repeat(43),
+};
 
 describe('loadEnv', () => {
   it('aplica os defaults de rede e do dono único', () => {
@@ -17,6 +21,10 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ SUPABASE_URL: valid.SUPABASE_URL })).toThrow(
       /SUPABASE_SERVICE_ROLE_KEY/,
     );
+  });
+
+  it('exige chave do aparelho longa (≥ 32)', () => {
+    expect(() => loadEnv({ ...valid, DEVICE_TOKEN: 'curta' })).toThrow(/DEVICE_TOKEN/);
   });
 
   it('trata variável vazia como ausente', () => {

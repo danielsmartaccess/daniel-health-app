@@ -38,20 +38,39 @@ let base: string;
 let repo: MemoryKneeRepository;
 let clock: number;
 
+const DEVICE_TOKEN = 'chave-de-teste-com-mais-de-32-caracteres-0000';
+
 async function start(customRepo?: KneeRepository) {
-  const app = createApp({ repo: customRepo ?? repo, ownerId: OWNER, now: () => clock });
+  const app = createApp({
+    repo: customRepo ?? repo,
+    ownerId: OWNER,
+    deviceToken: DEVICE_TOKEN,
+    now: () => clock,
+  });
   server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
 }
 
-async function call(method: string, path: string, body?: unknown) {
+async function call(
+  method: string,
+  path: string,
+  body?: unknown,
+  authorization: string | null = `Bearer ${DEVICE_TOKEN}`,
+) {
   const res = await fetch(`${base}${path}`, {
     method,
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(authorization ? { authorization } : {}),
+    },
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
   });
-  return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+  return {
+    status: res.status,
+    headers: res.headers,
+    body: (await res.json()) as Record<string, unknown>,
+  };
 }
 
 const item = {
@@ -73,6 +92,32 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await new Promise((resolve) => server.close(resolve));
+});
+
+describe('chave do aparelho', () => {
+  it('401 sem chave, com chave errada ou com esquema errado', async () => {
+    const path = `/templates/${TEMPLATE_ID}`;
+    expect((await call('GET', path, undefined, null)).status).toBe(401);
+    expect((await call('GET', path, undefined, 'Bearer chave-errada')).status).toBe(401);
+    expect((await call('GET', path, undefined, `Basic ${DEVICE_TOKEN}`)).status).toBe(401);
+  });
+
+  it('não grava nada sem a chave', async () => {
+    const res = await call(
+      'POST',
+      '/sessions',
+      { templateId: TEMPLATE_ID, painBefore: 0, onAntiInflammatory: false },
+      null,
+    );
+    expect(res.status).toBe(401);
+    expect(repo.dailyLogs.size).toBe(0);
+  });
+
+  it('health check fica aberto (monitoramento) e nada da API é cacheável', async () => {
+    const health = await call('GET', '/health', undefined, null);
+    expect(health.status).toBe(200);
+    expect(health.headers.get('cache-control')).toBe('no-store');
+  });
 });
 
 describe('GET /api/templates/:id (2.1)', () => {

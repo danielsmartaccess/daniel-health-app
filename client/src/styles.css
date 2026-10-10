@@ -259,6 +259,35 @@ body {
   color: var(--muted);
 }
 
+/* ─── Chave do aparelho ─── */
+.key-form {
+  max-width: 420px;
+  margin: 0 auto;
+  align-items: stretch;
+  text-align: left;
+}
+.key-form h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+.key-input {
+  min-height: 56px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+}
+.key-input:focus-visible {
+  outline: 3px solid var(--rest);
+  outline-offset: 2px;
+}
+.key-error {
+  margin: 0;
+  color: #ff6b6b;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .segment__fill,
   .block-bar__fill {

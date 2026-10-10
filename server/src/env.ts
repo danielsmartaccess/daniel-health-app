@@ -9,6 +9,9 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
   OWNER_ID: idSchema.default(DEFAULT_OWNER_ID),
+  // Chave do aparelho: aleatória, longa. Gere com:
+  // node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+  DEVICE_TOKEN: z.string().min(32),
   SPOTIFY_CLIENT_ID: z.string().optional(),
   SPOTIFY_REDIRECT_URI: z.string().url().default('http://127.0.0.1:3001/api/spotify/callback'),
 });

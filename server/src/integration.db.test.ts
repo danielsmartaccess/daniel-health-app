@@ -30,7 +30,7 @@ let dayBefore: { id: string; updated_at: string | null } | null = null;
 async function call(method: string, path: string, body?: unknown) {
   const res = await fetch(`${base}${path}`, {
     method,
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.DEVICE_TOKEN}` },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return { status: res.status, body: (await res.json()) as Record<string, unknown> };
@@ -48,6 +48,7 @@ beforeAll(async () => {
   const app = createApp({
     repo: new SupabaseKneeRepository(db),
     ownerId: env.OWNER_ID,
+    deviceToken: env.DEVICE_TOKEN,
     now: Date.now,
   });
   server = app.listen(0, '127.0.0.1');

@@ -10,6 +10,7 @@ const env = loadEnv();
 const app = createApp({
   repo: new SupabaseKneeRepository(createDb(env)),
   ownerId: env.OWNER_ID,
+  deviceToken: env.DEVICE_TOKEN,
   now: Date.now,
 });
 
