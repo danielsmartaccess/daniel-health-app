@@ -121,6 +121,31 @@ Sem login, a chave `anon` fica no HTML público e as políticas RLS são permiss
 pessoal de 1 usuário. O Supabase Advisor mostra 8 avisos `rls_policy_always_true` —
 **esperados** nesta configuração.
 
+---
+
+## TREINO DO JOELHO (branch `feat/knee-workout`, em desenvolvimento)
+
+Monorepo com npm workspaces, ao lado do health app legado (que continua intocado na raiz):
+
+```text
+shared/   → domínio puro (máquina de estados, localDate, schemas zod). Sem React, sem Date.now()
+server/   → Express + TS. ÚNICA porta de entrada do banco (chave service_role em server/.env)
+client/   → React + Vite + TS. Só fala com /api. Nunca recebe chave do Supabase
+supabase/migrations/ → migrations versionadas + rollback
+```
+
+Comandos: `npm install`, `npm run dev` (server 127.0.0.1:3001 + client 127.0.0.1:5173), `npm run check`.
+
+**Regras invioláveis no banco:**
+
+* Nada de ALTER/DROP/UPDATE/DELETE/TRUNCATE nas 8 tabelas antigas, em `upsert_apple_day` ou nas policies sem aprovação explícita do Dani.
+* Única escrita na camada antiga: get-or-create de `daily_logs` (OWNER_ID, data de hoje em America/Sao_Paulo).
+* Leitura só de `biometrics` e `alcohol_log`. Não tocar em `medications` nem `lab_results`.
+* Sessões guiadas vivem só em `knee_*`. Nunca escrever na `exercises` antiga.
+* Toda mudança de schema = arquivo em `supabase/migrations` com rollback.
+
+**Atenção:** o health app calcula "hoje" em UTC (`toISOString`), o Treino do Joelho em America/Sao_Paulo. Entre 21h e 23h59 locais os dois apontam para dias diferentes.
+
 ### Próximos passos sugeridos
 
 * PWA (manifest + service worker) para instalar no iPhone
