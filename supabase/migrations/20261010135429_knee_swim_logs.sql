@@ -1,4 +1,5 @@
--- migration: knee_swim_logs  (PROPOSTA — NÃO APLICADA. Card 0.5, aguarda OK do Dani)
+-- migration: knee_swim_logs  (APLICADA em 2026-10-10 com OK do Dani. Card 0.5)
+-- Rollback: 20261010135429_knee_swim_logs.rollback.sql
 -- ADITIVA: só cria tabela nova na camada knee_*. Nenhuma tabela antiga é alterada.
 --
 -- Registro manual de natação (não guiada), com os campos do resumo do Apple Watch
