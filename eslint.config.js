@@ -7,7 +7,14 @@ import globals from 'globals';
 export default tseslint.config(
   {
     // Legado do health app (single-file) fica fora do lint do monorepo.
-    ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', 'sw.js', 'saude-app.html'],
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/coverage/**',
+      '.vercel/**', // saída gerada pelo build da Vercel
+      'sw.js',
+      'saude-app.html',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
