@@ -53,6 +53,70 @@ describe('startAnnouncement', () => {
   });
 });
 
+describe('controles por estado (3.3)', () => {
+  const flags = (state: typeof idle) => {
+    const v = toPlayerView(state, 0);
+    return {
+      start: v.canStart,
+      pause: v.canPause,
+      resume: v.canResume,
+      skip: v.canSkip,
+      finish: v.canFinish,
+      awake: v.keepAwake,
+      label: v.label,
+    };
+  };
+
+  it('antes de começar: só iniciar, tela livre', () => {
+    expect(flags(idle)).toEqual({
+      start: true,
+      pause: false,
+      resume: false,
+      skip: false,
+      finish: false,
+      awake: false,
+      label: '',
+    });
+  });
+
+  it('treinando: pausar, pular e encerrar; tela acesa', () => {
+    expect(flags(at([{ type: 'start', now: 0 }]))).toEqual({
+      start: false,
+      pause: true,
+      resume: false,
+      skip: true,
+      finish: true,
+      awake: true,
+      label: 'Agora',
+    });
+  });
+
+  it('pausado: retomar e encerrar; tela continua acesa; contagem congelada', () => {
+    const paused = at([
+      { type: 'start', now: 0 },
+      { type: 'pause', now: 10 * S },
+    ]);
+    expect(flags(paused)).toEqual({
+      start: false,
+      pause: false,
+      resume: true,
+      skip: false,
+      finish: true,
+      awake: true,
+      label: 'Pausado',
+    });
+    expect(toPlayerView(paused, 999 * S).remainingMs).toBe(30 * S);
+  });
+
+  it('terminado: nada de controles de treino, tela livre', () => {
+    const done = at([
+      { type: 'start', now: 0 },
+      { type: 'finish', now: 5 * S },
+    ]);
+    expect(flags(done)).toMatchObject({ pause: false, skip: false, finish: false, awake: false });
+  });
+});
+
 describe('toPlayerView', () => {
   it('antes de começar: resumo do treino e botão iniciar', () => {
     const view = toPlayerView(idle, 0);

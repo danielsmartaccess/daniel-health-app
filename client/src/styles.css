@@ -259,6 +259,42 @@ body {
   color: var(--muted);
 }
 
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.badge--warn {
+  color: #ffb347;
+  border-color: #ffb347;
+}
+
+/* Pausado: tudo em cinza para não confundir com o treino correndo. */
+.player--paused .stage__label,
+.player--paused .metric__value {
+  color: var(--muted);
+}
+.player--paused .block-bar__fill {
+  background: var(--muted);
+}
+
+.controls__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.link-button {
+  min-height: 44px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .voice-note {
   margin: 0;
   text-align: center;
