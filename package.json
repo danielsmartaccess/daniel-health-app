@@ -19,7 +19,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "check": "npm run check:secrets && npm run lint && npm run format:check && npm run typecheck && npm run test"
+    "check": "npm run check:secrets && npm run lint && npm run format:check && npm run typecheck && npm run test",
+    "dev:lan": "concurrently -n server,client -c blue,green \"npm run dev -w @knee/server\" \"npm run dev:lan -w @knee/client\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

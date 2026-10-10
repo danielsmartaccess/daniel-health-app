@@ -1,0 +1,267 @@
+/* Treino do Joelho — legível a 2 m de distância, com o celular apoiado no chão. */
+:root {
+  color-scheme: dark light;
+  --bg: #0b0d0c;
+  --surface: #161a18;
+  --text: #f4f7f5;
+  --muted: #9aa49f;
+  --line: #2a302d;
+  --work: #a6e35b;
+  --work-dim: #33461e;
+  --rest: #5ac8fa;
+  --rest-dim: #17394a;
+  --on-accent: #0b0d0c;
+  --radius: 16px;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7f6;
+    --surface: #ffffff;
+    --text: #101412;
+    --muted: #5d6762;
+    --line: #dde2df;
+    --work: #3f8a12;
+    --work-dim: #d6eac4;
+    --rest: #0a7cbf;
+    --rest-dim: #cfe6f4;
+    --on-accent: #ffffff;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.player {
+  min-height: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+}
+
+.player__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* ─── Linha do tempo "tipo vídeo" ─── */
+.timeline {
+  display: flex;
+  gap: 3px;
+  height: 10px;
+}
+
+.segment {
+  flex-basis: 0;
+  min-width: 4px;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.segment--work {
+  background: var(--work-dim);
+}
+.segment--rest {
+  background: var(--rest-dim);
+}
+
+.segment__fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transition: transform 200ms linear;
+}
+.segment--work .segment__fill {
+  background: var(--work);
+}
+.segment--rest .segment__fill {
+  background: var(--rest);
+}
+
+.segment--current {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+/* ─── Palco: o bloco atual ─── */
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 0;
+}
+
+.stage__label {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--work);
+}
+.player--rest .stage__label {
+  color: var(--rest);
+}
+
+.stage__title {
+  margin: 0;
+  font-size: clamp(2.2rem, 9vw, 3.4rem);
+  line-height: 1.05;
+  font-weight: 800;
+}
+
+.stage__subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.stage__metric {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metric__value {
+  font-size: clamp(5rem, 28vw, 8.5rem);
+  font-weight: 800;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  color: var(--work);
+}
+.player--rest .metric__value {
+  color: var(--rest);
+}
+
+.metric__unit {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.metric__aside {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.block-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.block-bar__fill {
+  height: 100%;
+  background: var(--work);
+  transform-origin: left center;
+  transition: transform 200ms linear;
+}
+.player--rest .block-bar__fill {
+  background: var(--rest);
+}
+
+.up-next {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 1.05rem;
+}
+.up-next span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+/* ─── Controles: alvos grandes, fáceis de tocar suado ─── */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.button {
+  min-height: 64px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.button:focus-visible {
+  outline: 3px solid var(--rest);
+  outline-offset: 2px;
+}
+
+.button--primary {
+  background: var(--work);
+  border-color: var(--work);
+  color: var(--on-accent);
+}
+
+.screen-message {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segment__fill,
+  .block-bar__fill {
+    transition: none;
+  }
+}
